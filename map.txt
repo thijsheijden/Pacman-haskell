@@ -1,0 +1,10 @@
+rc l l l l l l l l dc
+v b b b b b b b b v
+v b b b b b b b b v
+v b rc l l l l dc b v
+v b v b b b b v b v
+v b v b b b b v b v
+v b uc l l l l lc b v
+v b b b b b b b b v
+v b b b b b b b b v
+uc l l l l l l l l lc

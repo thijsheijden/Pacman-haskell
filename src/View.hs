@@ -9,7 +9,11 @@ view :: GameState -> IO Picture
 view = return . viewPure
 
 viewPure :: GameState -> Picture
-viewPure gstate = case infoToShow gstate of
-  ShowNothing   -> blank
-  ShowANumber n -> color green (text (show n))
-  ShowAChar   c -> color green (text [c])
+viewPure = renderBoard
+
+renderBoard :: GameState -> Picture
+renderBoard gstate = pictures $ map (renderBoardRow gstate) (zip [0 ..] (board gstate))
+
+renderBoardRow :: GameState -> (Float, Row) -> Picture
+renderBoardRow gstate (yIndex, row) = pictures $ map (\(xIndex, fieldValue) -> render gstate fieldValue xIndex yIndex) r
+  where r = zip [0 ..] row
