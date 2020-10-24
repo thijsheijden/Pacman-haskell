@@ -1,15 +1,23 @@
-b rc l l l l l l l l l dc b
-b v b b b b b b b b b v b
-b v b rc dc b b b rc dc b v b
-b v b uc lc b b b uc lc b v b
-b v b b b b b b b b b v b
-b v b tr b b b b b tr b v b
-lr lc b v b b b b b v b uc rr
-b b b v b b b b b v b b b
-lr dc b v b b b b b v b rc rr
-b v b br b b b b b br b v b
-b v b b b b b b b b b v b
-b v b rc dc b b b rc dc b v b
-b v b uc lc b b b uc lc b v b
-b v b b b b b b b b b v b
-b uc l l l l l l l l l lc b
+rc l l l l l l l l l do l l l l l l l l l dc
+v p p p p p p p p p v p p p p p p p p p v
+v p rc dc p rc l l dc p v p rc l l dc p rc dc p v
+v p uc lc p uc l l lc p br p uc l l lc p uc lc p v
+v p p p p p p p p p p p p p p p p p p p v
+v p lr rr p tr p lr l l do l l rr p tr p lr rr p v
+v p p p p v p p p p v p p p p v p p p p v
+uc l l dc p ro l l rr p br p lr l l lo p rc l l lc
+e e e v p v p p p p p p p p p v p v e e e
+lr l l lc p br p rc l l l l l dc p br p uc l l rr
+p p p p p p p v e g2 e g3 e v p p p p p p p
+lr l l dc p tr p v g1 e e e g4 v p tr p rc l l rr
+e e e v p v p uc l l l l l lc p v p v e e e
+rc l l lc p v p p p p p p p p p v p uc l l dc
+v p p p p br p lr l l do l l rr p br p p p p v
+v p lr dc p p p p p p v p p p p p p rc rr p v
+v p p v p lr l l rr p br p lr l l rr p v p p v
+ro rr p br p p p p p p p p p p p p p br p lr lo
+v p p p p tr p lr l l l l l rr p tr p p p p v
+v p rc l l lo p p p p p p p p p ro l l dc p v
+v p uc l l uo l l l rr p lr l l l uo l l lc p v
+v p p p p p p p p p p p p p p p p p p p v
+uc l l l l l l l l l l l l l l l l l l l lc
