@@ -151,6 +151,31 @@ calculateGridSize :: Board -> Float -> Float -> Float
 calculateGridSize board numberOfColumns numberOfRows  | 1280 / numberOfColumns < 720 / numberOfRows = 1280 / numberOfColumns
                                                       | otherwise = 720 / numberOfRows
 
+-- Direction typeclass
+-- All items which have a movementDirection should implement this
+class HasDirection a where
+  direction :: a -> MovementDirection
+  updateMovementDirection :: MovementDirection -> a -> a
+
+instance HasDirection Player where
+  direction = playerDirection
+  updateMovementDirection direction player = player { playerDirection = direction}
+
+instance HasDirection Ghost where
+  direction = ghostDirection
+  updateMovementDirection direction ghost = ghost { ghostDirection = direction }
+
+-- Position typeclass
+-- All items which have a position should implement this
+class HasPosition a where
+  position :: a -> Point
+
+instance HasPosition Player where
+  position = playerPosition
+
+instance HasPosition Ghost where
+  position = ghostPosition
+
 -- Renderable typeclass
 -- All items which can be rendered should implement this
 class Renderable a where
@@ -188,26 +213,26 @@ instance Renderable Field where
 instance Renderable Player where
   render gstate player = scaleAndTranslate gstate (currentPlayerSprite player (animationState player))
     where currentPlayerSprite :: Player -> PlayerAnimationState -> Picture
-          currentPlayerSprite player Open   | playerDirection player == Model.None = playerSprites player !! 6
-                                            | playerDirection player == Model.Up = playerSprites player !! 4
-                                            | playerDirection player == Model.Down = playerSprites player !! 5
-                                            | playerDirection player == Model.Left = playerSprites player !! 6
-                                            | playerDirection player == Model.Right = playerSprites player !! 7
-          currentPlayerSprite player Closed | playerDirection player == Model.None = playerSprites player !! 6
-                                            | playerDirection player == Model.Up = head $ playerSprites player
-                                            | playerDirection player == Model.Down = playerSprites player !! 1
-                                            | playerDirection player == Model.Left = playerSprites player !! 2
-                                            | playerDirection player == Model.Right = playerSprites player !! 3
+          currentPlayerSprite player Open   | direction player == Model.None = playerSprites player !! 6
+                                            | direction player == Model.Up = playerSprites player !! 4
+                                            | direction player == Model.Down = playerSprites player !! 5
+                                            | direction player == Model.Left = playerSprites player !! 6
+                                            | direction player == Model.Right = playerSprites player !! 7
+          currentPlayerSprite player Closed | direction player == Model.None = playerSprites player !! 6
+                                            | direction player == Model.Up = head $ playerSprites player
+                                            | direction player == Model.Down = playerSprites player !! 1
+                                            | direction player == Model.Left = playerSprites player !! 2
+                                            | direction player == Model.Right = playerSprites player !! 3
 
 -- Ghost renderable instance
 instance Renderable Ghost where
   render gstate ghost = scaleAndTranslate gstate (currentGhostSprite ghost)
     where currentGhostSprite :: Ghost -> Picture
-          currentGhostSprite ghost  | ghostDirection ghost == Model.None = head $ ghostSprites ghost
-                                    | ghostDirection ghost == Model.Up = head $ ghostSprites ghost
-                                    | ghostDirection ghost == Model.Down = ghostSprites ghost !! 1
-                                    | ghostDirection ghost == Model.Left = ghostSprites ghost !! 2
-                                    | ghostDirection ghost == Model.Right = ghostSprites ghost !! 3
+          currentGhostSprite ghost  | direction ghost == Model.None = head $ ghostSprites ghost
+                                    | direction ghost == Model.Up = head $ ghostSprites ghost
+                                    | direction ghost == Model.Down = ghostSprites ghost !! 1
+                                    | direction ghost == Model.Left = ghostSprites ghost !! 2
+                                    | direction ghost == Model.Right = ghostSprites ghost !! 3
 
 
 -- Function to scale a picture to a certain size
@@ -223,7 +248,7 @@ translatePicture gstate p (x, y) = Translate ((-(nColumns * gSize) * 0.5) + 0.5 
         nRows = numberOfRows gstate
 
 scaleAndTranslate :: GameState -> Picture -> (Float, Float) -> Picture
-scaleAndTranslate gstate p = translatePicture gstate $ scalePicture gstate p
+scaleAndTranslate gstate = translatePicture gstate . scalePicture gstate
 
 -- Helper function to find the "x, y" position of a field on the board
 findFieldPositionOnBoard :: Board -> Field -> (Float, Float)

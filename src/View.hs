@@ -10,7 +10,7 @@ view = return . viewPure
 
 viewPure :: GameState -> Picture
 viewPure gstate = pictures [renderBoard gstate, 
-                            renderPlayer gstate, 
+                            renderPlayer (player gstate) gstate, 
                             renderGhost (blinky gstate) gstate, 
                             renderGhost (inky gstate) gstate, 
                             renderGhost (clyde gstate) gstate, 
@@ -23,8 +23,8 @@ renderBoardRow :: GameState -> (Float, Row) -> Picture
 renderBoardRow gstate (yIndex, row) = pictures $ map (\(xIndex, fieldValue) -> render gstate fieldValue (xIndex, yIndex)) r
   where r = zip [0 ..] row
 
-renderPlayer :: GameState -> Picture
-renderPlayer gstate = render gstate (player gstate) (playerPosition $ player gstate)
+renderPlayer :: Player -> GameState -> Picture
+renderPlayer player gstate = render gstate player (position player)
 
 renderGhost :: Ghost -> GameState -> Picture
-renderGhost ghost gstate = render gstate ghost (ghostPosition ghost)
+renderGhost ghost gstate = render gstate ghost (position ghost)
