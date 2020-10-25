@@ -7,6 +7,7 @@ import Graphics.Gloss
 import Data.Maybe
 import Data.List
 
+-- Creating the initial gamestate record object
 initialState :: StdGen -> String -> [Picture] -> [Picture] -> [[Picture]] -> GameState
 initialState stdGen map pics playerSprites ghostSprites = GameState {  player = initialPlayer playerSprites,
                                                           stdGen = stdGen,
@@ -20,10 +21,10 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
                                                           multiplier = 1,
                                                           elapsedTime = 0,
                                                           elapsedFrames = 0,
-                                                          blinky = initialGhost (head ghostSprites) blinkyPosition,
-                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition,
-                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition,
-                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition
+                                                          blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome,
+                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome,
+                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome,
+                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome
                                                         }
   where
     board = createBoard map
@@ -34,6 +35,10 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
     inkyPosition = findFieldPositionOnBoard board InkySpawn
     clydePosition = findFieldPositionOnBoard board ClydeSpawn
     pinkyPosition = findFieldPositionOnBoard board PinkySpawn
+    blinkyHome = findFieldPositionOnBoard board BlinkyHome
+    inkyHome = findFieldPositionOnBoard board InkyHome
+    clydeHome = findFieldPositionOnBoard board ClydeHome
+    pinkyHome = findFieldPositionOnBoard board PinkyHome
 
 -- Creating the initial Player record object
 initialPlayer :: [Picture] -> Player
@@ -41,15 +46,22 @@ initialPlayer pics = Player { playerSprites = pics,
                               currentPlayerSprite = pics !! 6,
                               playerPosition = (10, 8),
                               animationState = Open,
-                              playerDirection = None
+                              playerDirection = None,
+                              playerFutureDirection = None,
+                              playerState = PlayerAlive,
+                              elapsedPlayerFrames = 0
                             }
 
 -- Creating an initial ghost record object
-initialGhost :: [Picture] -> (Float, Float) -> Ghost
-initialGhost pics spawn = Ghost { ghostSprites = pics,
-                            ghostPosition = spawn,
-                            ghostDirection = None }
+initialGhost :: [Picture] -> (Float, Float) -> (Float, Float) -> Ghost
+initialGhost pics spawn home = Ghost {  ghostSprites = pics,
+                                        ghostPosition = spawn,
+                                        home = home,
+                                        ghostDirection = None,
+                                        ghostState = Trapped,
+                                        speed = 1}
 
+-- The gamestate record object
 data GameState = GameState {  gameState     :: State,
                               player        :: Player,
                               board         :: Board,
@@ -68,6 +80,7 @@ data GameState = GameState {  gameState     :: State,
                               stdGen        :: StdGen
                           }
 
+-- The player record object
 data Player = Player {  playerPosition  :: Point,
                         playerState     :: PlayerState,
                         animationState  :: PlayerAnimationState,
@@ -80,29 +93,35 @@ data Player = Player {  playerPosition  :: Point,
 
 data PlayerAnimationState = Open | Closed
 
-data PlayerState = PlayerAlive | PlayerDead
+data PlayerState = PlayerAlive | PlayerDead | PlayerBoosted
 
+-- The ghost record object
 data Ghost  = Ghost { ghostPosition   :: Point,
                       ghostState      :: GhostState,
                       home            :: Point,
                       speed           :: Float,
-                      released        :: Bool,
                       ghostDirection  :: MovementDirection,
                       ghostSprites    :: [Picture]
                     }
 
+-- The state of the game
 data State = Playing | GameOver | Paused
 
-data GhostState = Chasing | Scared | Dead | Scattering
+-- The state of a ghost
+data GhostState = Chasing | Scared | Dead | Scattering | Trapped
 
+-- The direction the ghost/player is moving or going to move
 data MovementDirection = Up | Down | Left | Right | None
   deriving (Eq)
 
+-- A field on the board
 data Field = Pacdot | Energizer | Cherry | Empty | RightCorner | DownCorner | LeftCorner | UpCorner 
             | Horizontal | Vertical | UpConnector | DownConnector 
             | LeftConnector | RightConnector | AllConnector | LeftRounded 
             | RightRounded | TopRounded | BottomRounded
             | BlinkySpawn | InkySpawn | ClydeSpawn | PinkySpawn
+            | BlinkyHome  | InkyHome  | ClydeHome  | PinkyHome
+            | Transporter
   deriving (Eq)
 type Row = [Field]
 type Board = [Row]
@@ -111,6 +130,7 @@ type Board = [Row]
 createBoard :: String -> Board
 createBoard t = map (rowToFields . words) (lines t)
 
+-- Map a string to the corresponding Field
 rowToFields :: [String] -> Row
 rowToFields = map stringToField
   where stringToField :: String -> Field
@@ -140,13 +160,22 @@ rowToFields = map stringToField
         stringToField "g3" = ClydeSpawn
         stringToField "g4" = PinkySpawn
 
+        -- Will be drawn as pacdots later, for now this visualizes things
+        stringToField "h1" = BlinkyHome
+        stringToField "h2" = InkyHome
+        stringToField "h3" = ClydeHome
+        stringToField "h4" = PinkyHome
+
+        -- Will be drawn as pacdots later, for now this visualizes things
+        stringToField "t" = Transporter
+
         stringToField "c" = Cherry
 
         stringToField "e" = Empty
 
         stringToField _ = Empty
 
-
+-- Calculate the size a single square in our grid should be to make sure the map is as large as possible while not being larger than the viewport
 calculateGridSize :: Board -> Float -> Float -> Float
 calculateGridSize board numberOfColumns numberOfRows  | 1280 / numberOfColumns < 720 / numberOfRows = 1280 / numberOfColumns
                                                       | otherwise = 720 / numberOfRows
@@ -189,13 +218,20 @@ instance Renderable Field where
   render gstate RightRounded = scaleAndTranslate gstate (pics gstate !! 13)
   render gstate LeftRounded = scaleAndTranslate gstate (pics gstate !! 14)
 
-  render gstate Empty = translatePicture gstate (color black $ rectangleSolid 10 10)
+  render gstate Empty = translatePicture gstate (color black . rectangleSolid 10 $ 10)
 
   render gstate Cherry = scaleAndTranslate gstate (pics gstate !! 15)
 
-  render gstate _ = translatePicture gstate (color white $ circleSolid 5)
+  render gstate BlinkyHome = translatePicture gstate (color red . circleSolid $ 5)
+  render gstate InkyHome = translatePicture gstate (color (light blue) . circleSolid $ 5)
+  render gstate ClydeHome = translatePicture gstate (color cyan . circleSolid $ 5)
+  render gstate PinkyHome = translatePicture gstate (color magenta . circleSolid $ 5)
 
--- Function to scale a picture to a certain size
+  render gstate Transporter = translatePicture gstate (color blue . circleSolid $ 5)
+
+  render gstate _ = translatePicture gstate (color white . circleSolid $ 5)
+
+-- Function to scale a picture to a certain size (all our bitmaps are 100x100 thus the gridSize should always be divided by 100)
 scalePicture :: GameState -> Picture -> Picture
 scalePicture gstate = scale (gSize / 100) (gSize / 100)
   where gSize = gridSize gstate
