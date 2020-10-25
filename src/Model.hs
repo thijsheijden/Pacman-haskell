@@ -23,7 +23,7 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
                                                           numberOfRows = numberOfRows,
                                                           multiplier = 1,
                                                           elapsedTime = 0,
-                                                          elapsedFrames = 0,
+                                                          elapsedBoardFrames = 0,
                                                           blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome,
                                                           inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome,
                                                           clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome,
@@ -48,7 +48,7 @@ initialPlayer :: [Picture] -> Player
 initialPlayer pics = Player { playerSprites = pics,
                               currentPlayerSprite = pics !! 6,
                               playerPosition = (10, 8),
-                              animationState = Open,
+                              playerAnimationState = Open,
                               playerDirection = None,
                               playerFutureDirection = None,
                               playerState = PlayerAlive,
@@ -77,7 +77,7 @@ data GameState = GameState {  gameState       :: State,
                               score           :: Int,
                               multiplier      :: Int,
                               elapsedTime     :: Float,
-                              elapsedFrames   :: Int,
+                              elapsedBoardFrames   :: Int,
                               numberOfRows    :: Float,
                               numberOfColumns :: Float,
                               gridSize        :: Float,
@@ -88,7 +88,7 @@ data GameState = GameState {  gameState       :: State,
 -- The player record object
 data Player = Player {  playerPosition        :: Point,
                         playerState           :: PlayerState,
-                        animationState        :: PlayerAnimationState,
+                        playerAnimationState  :: PlayerAnimationState,
                         playerDirection       :: MovementDirection,
                         playerFutureDirection :: MovementDirection,
                         currentPlayerSprite   :: Picture,
@@ -206,6 +206,16 @@ class HasPosition a where
 -- All items which can be rendered should implement this
 class Renderable a where
   render :: GameState -> a -> (Float, Float) -> Picture
+
+-- AnimationState typeclass
+-- Any animation has animation states. Instancing this typeclass gives us an easy way to go to the next frame of the animation
+class AnimationState a where
+  nextState :: a -> a
+
+-- Animatable typeclass
+-- All items which can be animated should implement this
+class Animatable a where
+  elapsedFrames :: a -> Int
 
 -- Renderable instances
 -- Board renderable instance

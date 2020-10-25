@@ -10,7 +10,9 @@ updatePlayer gstate player = player { playerPosition = newPosition,
                                       playerDirection = newMovementDirection,
                                       playerFutureDirection = newFutureMovementDirection,
                                       xSteps = newXSteps,
-                                      ySteps = newYSteps }
+                                      ySteps = newYSteps,
+                                      playerAnimationState = newAnimationState,
+                                      elapsedPlayerFrames = elapsedPlayerFrames player + 1 }
   where
     playerMovementObject = updatePlayerPosition (position player) (stepsTaken player) (round $ numberOfColumns gstate) (board gstate) (direction player) (playerFutureDirection player)
     newPosition = (fst . fst) playerMovementObject
@@ -26,7 +28,8 @@ updatePlayer gstate player = player { playerPosition = newPosition,
     newFutureMovementDirection  | (snd . fst) playerMovementObject = Model.None
                                 | otherwise = playerFutureDirection player
 
-    
+    -- The new player animation state, used for animating
+    newAnimationState = updatePlayerAnimationState (elapsedFrames player) (playerAnimationState player)
 
 -- Update the position of the player
 -- Returns the new position of the player and a boolean which denotes whether to remove the future direction (because the player went in that direction)
@@ -49,30 +52,10 @@ updatePlayerPosition (x, y) (xSteps, ySteps) numberOfColumns board md         fm
                                                                                     where
                                                                                       canMoveInDirection direction = isFieldEmptyOrPacdot direction board numberOfColumns 0.05 (x, y)
 
--- Update the player sprite for animation
-
--- updatePlayer :: GameState -> Player -> Player
--- updatePlayer gstate player@(Player pos@(x,y) _ anmt nowdirec futdirec _ _ eframes xSteps ySteps)  | switch && anmt == Open    = player {playerPosition = newpos, animationState = Closed, playerDirection = direc, elapsedPlayerFrames = eframes+1, xSteps = newXSteps, ySteps = newYSteps}
---                                                                                                   | switch && anmt == Closed  = player {playerPosition = newpos, animationState = Open, playerDirection = direc, elapsedPlayerFrames = eframes+1, xSteps = newXSteps, ySteps = newYSteps}
---                                                                                                   | otherwise                 = player {playerPosition = newpos, elapsedPlayerFrames = eframes+1}
---   where
---     direc     | isFieldEmptyOrPacdot futdirec (board gstate) ((round . numberOfColumns) gstate) 0.1 pos = futdirec
---               | isFieldEmptyOrPacdot nowdirec (board gstate) ((round . numberOfColumns) gstate) 0.1 pos = nowdirec
---               | otherwise                         = Model.None
---     switch    = eframes `mod` 5 == 0
---     step      = 0.1
---     newXSteps | direc == Model.Left   = xSteps - 1
---               | direc == Model.Right  = xSteps + 1
---               | otherwise = xSteps
---     newYSteps | direc == Model.Up     = ySteps - 1
---               | direc == Model.Down   = ySteps + 1
---               | otherwise = ySteps
---     newpos    | direc == Model.Up     = (x, y - step)
---               | direc == Model.Down   = (x, y + step)
---               | direc == Model.Left   = (x - step, y)
---               | direc == Model.Right  = (x + step, y)
---               | otherwise             = pos
-
+-- Update the player animation state used for animating the player
+updatePlayerAnimationState :: Int -> PlayerAnimationState -> PlayerAnimationState
+updatePlayerAnimationState elapsedFrames animationState | elapsedFrames `mod` 10 == 0 = nextState animationState
+                                                        | otherwise = animationState
 
 instance HasDirection Player where
   direction = playerDirection
@@ -111,7 +94,7 @@ instance HasPosition Player where
 
 -- Pacman renderable instance
 instance Renderable Player where
-  render gstate player = scaleAndTranslate gstate (currentPlayerSprite player (animationState player))
+  render gstate player = scaleAndTranslate gstate (currentPlayerSprite player (playerAnimationState player))
     where currentPlayerSprite :: Player -> PlayerAnimationState -> Picture
           currentPlayerSprite player Open   | direction player == Model.None  = playerSprites player !! 6
                                             | direction player == Model.Up    = playerSprites player !! 5
@@ -123,3 +106,10 @@ instance Renderable Player where
                                             | direction player == Model.Down  = head $ playerSprites player
                                             | direction player == Model.Left  = playerSprites player !! 2
                                             | direction player == Model.Right = playerSprites player !! 3
+
+instance AnimationState PlayerAnimationState where
+  nextState Open = Closed
+  nextState Closed = Open
+
+instance Animatable Player where
+  elapsedFrames = elapsedPlayerFrames

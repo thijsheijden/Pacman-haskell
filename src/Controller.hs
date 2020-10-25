@@ -12,7 +12,7 @@ import System.Random
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
 step secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate + secs,
-                                      elapsedFrames = elapsedFrames gstate + 1,
+                                      elapsedBoardFrames = elapsedBoardFrames gstate + 1,
                                       player  = updatePlayer gstate (player gstate),
                                       blinky  = updateGhost gstate (blinky gstate), 
                                       inky    = updateGhost gstate (inky gstate), 
@@ -45,7 +45,7 @@ inputKey _ gstate = gstate
 updateGhost :: GameState -> Ghost -> Ghost
 updateGhost gstate ghost@(Ghost pos@(x,y) state _ direc _) = ghost {ghostState = newstate, ghostPosition = newpos}
   where
-    time    = elapsedFrames gstate + 1
+    time    = elapsedBoardFrames gstate + 1
     newstate| time `mod` 800 == 0   = Model.Scattering    -- not the way to do it, but changing state works
             | time `mod` 400 == 0   = Model.Chasing
             | otherwise             = state
@@ -56,25 +56,3 @@ updateGhost gstate ghost@(Ghost pos@(x,y) state _ direc _) = ghost {ghostState =
             | direc == Model.Left   = (x - step, y)
             | direc == Model.Right  = (x + step, y)
             | otherwise             = pos
-
--- updatePlayer :: GameState -> Player -> Player
--- updatePlayer gstate player@(Player pos@(x,y) _ anmt nowdirec futdirec _ _ eframes xSteps ySteps)  | switch && anmt == Open    = player {playerPosition = newpos, animationState = Closed, playerDirection = direc, elapsedPlayerFrames = eframes+1, xSteps = newXSteps, ySteps = newYSteps}
---                                                                                                   | switch && anmt == Closed  = player {playerPosition = newpos, animationState = Open, playerDirection = direc, elapsedPlayerFrames = eframes+1, xSteps = newXSteps, ySteps = newYSteps}
---                                                                                                   | otherwise                 = player {playerPosition = newpos, elapsedPlayerFrames = eframes+1}
---   where
---     direc     | isFieldEmptyOrPacdot futdirec (board gstate) ((round . numberOfColumns) gstate) 0.1 pos = futdirec
---               | isFieldEmptyOrPacdot nowdirec (board gstate) ((round . numberOfColumns) gstate) 0.1 pos = nowdirec
---               | otherwise                         = Model.None
---     switch    = eframes `mod` 5 == 0
---     step      = 0.1
---     newXSteps | direc == Model.Left   = xSteps - 1
---               | direc == Model.Right  = xSteps + 1
---               | otherwise = xSteps
---     newYSteps | direc == Model.Up     = ySteps - 1
---               | direc == Model.Down   = ySteps + 1
---               | otherwise = ySteps
---     newpos    | direc == Model.Up     = (x, y - step)
---               | direc == Model.Down   = (x, y + step)
---               | direc == Model.Left   = (x - step, y)
---               | direc == Model.Right  = (x + step, y)
---               | otherwise             = pos

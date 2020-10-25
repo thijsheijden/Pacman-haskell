@@ -18,7 +18,7 @@ viewPure gstate = pictures [renderBoard gstate,
                             renderGhost (clyde gstate) gstate, 
                             renderGhost (pinky gstate) gstate,
                             renderElapsedTime gstate (elapsedTime gstate),
-                            renderElapsedFrames gstate (elapsedFrames gstate)]
+                            renderElapsedFrames gstate (elapsedBoardFrames gstate)]
 
 renderBoard :: GameState -> Picture
 renderBoard gstate = pictures $ map (renderBoardRow gstate) (zip [0 ..] (board gstate))
