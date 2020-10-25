@@ -34,7 +34,7 @@ renderGhost :: Ghost -> GameState -> Picture
 renderGhost ghost gstate = render gstate ghost (position ghost)
 
 renderElapsedTime :: GameState -> Float -> Picture
-renderElapsedTime gstate _ = scaleAndTranslate gstate ((color white . text . show) ((xSteps . player) gstate)) (21, 1)
+renderElapsedTime gstate _ = scaleAndTranslate gstate ((color white . text . show) ((direction . player) gstate)) (21, 1)
 -- renderElapsedTime gstate et = scaleAndTranslate gstate ((color white . text . show) et) (21, 1)
 
 renderElapsedFrames :: GameState -> Int -> Picture

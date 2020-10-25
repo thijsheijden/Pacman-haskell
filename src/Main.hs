@@ -7,7 +7,7 @@ import System.Random ( newStdGen )
 
 import Graphics.Gloss.Interface.IO.Game
     ( black, Display(InWindow), playIO )
-import Graphics.Gloss ( black, loadBMP, Display(InWindow) )
+import Graphics.Gloss ( loadBMP )
 
 main :: IO ()
 main = do
