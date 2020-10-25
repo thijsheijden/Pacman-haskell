@@ -298,8 +298,8 @@ fieldAtFuturePosition (x, y) board md numberOfColumns = concat board !! (numberO
 -- Check if there is a Pacdot or Empty field in the new direction
 isFieldEmptyOrPacdot :: MovementDirection -> Board -> Int -> Float -> (Float, Float) -> Bool
 isFieldEmptyOrPacdot Model.None  _     _               _         _     = False
-isFieldEmptyOrPacdot Model.Up    board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x, y + distance) board Model.Up) numberOfColumns
-isFieldEmptyOrPacdot Model.Down  board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x, y - distance) board Model.Down) numberOfColumns
+isFieldEmptyOrPacdot Model.Up    board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x, y - distance) board Model.Up) numberOfColumns
+isFieldEmptyOrPacdot Model.Down  board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x, y + distance) board Model.Down) numberOfColumns
 isFieldEmptyOrPacdot Model.Left  board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x - distance, y) board Model.Left) numberOfColumns
 isFieldEmptyOrPacdot Model.Right board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x + distance, y) board Model.Right) numberOfColumns
 

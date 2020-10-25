@@ -15,8 +15,9 @@ instance HasPosition Ghost where
 instance Renderable Ghost where
   render gstate ghost = scaleAndTranslate gstate (currentGhostSprite ghost)
     where currentGhostSprite :: Ghost -> Picture
-          currentGhostSprite ghost  | direction ghost == Model.None = head $ ghostSprites ghost
-                                    | direction ghost == Model.Up = head $ ghostSprites ghost
-                                    | direction ghost == Model.Down = ghostSprites ghost !! 1
-                                    | direction ghost == Model.Left = ghostSprites ghost !! 2
-                                    | direction ghost == Model.Right = ghostSprites ghost !! 3
+          currentGhostSprite ghost  | ghostState ghost  == Scared         = ghostSprites ghost !! 4
+                                    | direction ghost   == Model.None     = head $ ghostSprites ghost
+                                    | direction ghost   == Model.Up       = head $ ghostSprites ghost
+                                    | direction ghost   == Model.Down     = ghostSprites ghost !! 1
+                                    | direction ghost   == Model.Left     = ghostSprites ghost !! 2
+                                    | direction ghost   == Model.Right    = ghostSprites ghost !! 3

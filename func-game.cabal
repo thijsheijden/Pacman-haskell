@@ -25,7 +25,7 @@ executable func-game
     Player
     Ghost
   -- other-extensions:
-  build-depends:      base >=4.13 && <4.14,
+  build-depends:      base >= 4.12 && < 4.14,
                       gloss,
                       random
   hs-source-dirs:      src
