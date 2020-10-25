@@ -5,10 +5,11 @@ import Graphics.Gloss
 
 instance HasDirection Ghost where
   direction = ghostDirection
-  updateMovementDirection direction ghost = ghost { ghostDirection = direction }
+  updateMovementDirection gstate direction ghost = ghost { ghostDirection = direction }
 
 instance HasPosition Ghost where
   position = ghostPosition
+  stepsTaken ghost = (1, 1)
 
 -- Ghost renderable instance
 instance Renderable Ghost where

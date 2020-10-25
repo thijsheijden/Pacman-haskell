@@ -7,6 +7,9 @@ import Graphics.Gloss
 import Data.Maybe
 import Data.List
 
+secsBetweenCycles :: Float
+secsBetweenCycles = 4
+
 -- Creating the initial gamestate record object
 initialState :: StdGen -> String -> [Picture] -> [Picture] -> [[Picture]] -> GameState
 initialState stdGen map pics playerSprites ghostSprites = GameState {  player = initialPlayer playerSprites,
@@ -49,7 +52,9 @@ initialPlayer pics = Player { playerSprites = pics,
                               playerDirection = None,
                               playerFutureDirection = None,
                               playerState = PlayerAlive,
-                              elapsedPlayerFrames = 0
+                              elapsedPlayerFrames = 0,
+                              xSteps = 0,
+                              ySteps = 0
                             }
 
 -- Creating an initial ghost record object
@@ -58,57 +63,62 @@ initialGhost pics spawn home = Ghost {  ghostSprites = pics,
                                         ghostPosition = spawn,
                                         home = home,
                                         ghostDirection = None,
-                                        ghostState = Trapped,
-                                        speed = 1}
+                                        ghostState = Trapped
+                                    }
 
 -- The gamestate record object
-data GameState = GameState {  gameState     :: State,
-                              player        :: Player,
-                              board         :: Board,
-                              blinky        :: Ghost,
-                              inky          :: Ghost,
-                              pinky         :: Ghost,
-                              clyde         :: Ghost,
-                              score         :: Int,
-                              multiplier    :: Int,
-                              elapsedTime   :: Float,
-                              elapsedFrames :: Int,
-                              numberOfRows  :: Float,
+data GameState = GameState {  gameState       :: State,
+                              player          :: Player,
+                              board           :: Board,
+                              blinky          :: Ghost,
+                              inky            :: Ghost,
+                              pinky           :: Ghost,
+                              clyde           :: Ghost,
+                              score           :: Int,
+                              multiplier      :: Int,
+                              elapsedTime     :: Float,
+                              elapsedFrames   :: Int,
+                              numberOfRows    :: Float,
                               numberOfColumns :: Float,
-                              gridSize      :: Float,
-                              pics          :: [Picture],
-                              stdGen        :: StdGen
+                              gridSize        :: Float,
+                              pics            :: [Picture],
+                              stdGen          :: StdGen
                           }
 
 -- The player record object
-data Player = Player {  playerPosition  :: Point,
-                        playerState     :: PlayerState,
-                        animationState  :: PlayerAnimationState,
+data Player = Player {  playerPosition        :: Point,
+                        playerState           :: PlayerState,
+                        animationState        :: PlayerAnimationState,
                         playerDirection       :: MovementDirection,
                         playerFutureDirection :: MovementDirection,
                         currentPlayerSprite   :: Picture,
-                        playerSprites    :: [Picture],
-                        elapsedPlayerFrames   :: Int
+                        playerSprites         :: [Picture],
+                        elapsedPlayerFrames   :: Int,
+                        xSteps                :: Int,
+                        ySteps                :: Int
                     }
 
 data PlayerAnimationState = Open | Closed
+  deriving (Eq)
 
 data PlayerState = PlayerAlive | PlayerDead | PlayerBoosted
+  deriving (Eq)
 
 -- The ghost record object
 data Ghost  = Ghost { ghostPosition   :: Point,
                       ghostState      :: GhostState,
                       home            :: Point,
-                      speed           :: Float,
                       ghostDirection  :: MovementDirection,
                       ghostSprites    :: [Picture]
                     }
 
 -- The state of the game
 data State = Playing | GameOver | Paused
+  deriving (Eq)
 
 -- The state of a ghost
 data GhostState = Chasing | Scared | Dead | Scattering | Trapped
+  deriving (Eq)
 
 -- The direction the ghost/player is moving or going to move
 data MovementDirection = Up | Down | Left | Right | None
@@ -183,13 +193,14 @@ calculateGridSize board numberOfColumns numberOfRows  | 1280 / numberOfColumns <
 -- Direction typeclass
 -- All items which have a movementDirection should implement this
 class HasDirection a where
-  direction :: a -> MovementDirection
-  updateMovementDirection :: MovementDirection -> a -> a
+  direction               :: a -> MovementDirection
+  updateMovementDirection :: GameState -> MovementDirection -> a -> a
 
 -- Position typeclass
 -- All items which have a position should implement this
 class HasPosition a where
-  position :: a -> Point
+  position    :: a -> Point
+  stepsTaken  :: a -> (Int, Int)
 
 -- Renderable typeclass
 -- All items which can be rendered should implement this
@@ -240,8 +251,8 @@ scalePicture gstate = scale (gSize / 100) (gSize / 100)
 translatePicture :: GameState -> Picture -> (Float, Float) -> Picture
 translatePicture gstate p (x, y) = Translate ((-(nColumns * gSize) * 0.5) + 0.5 * gSize + x * gSize) (((nRows * gSize) * 0.5) - 0.5 * gSize - y * gSize) p
   where gSize = gridSize gstate
-        nColumns = numberOfColumns gstate
-        nRows = numberOfRows gstate
+        nColumns  = numberOfColumns gstate
+        nRows     = numberOfRows gstate
 
 scaleAndTranslate :: GameState -> Picture -> (Float, Float) -> Picture
 scaleAndTranslate gstate = translatePicture gstate . scalePicture gstate
@@ -256,3 +267,45 @@ findFieldPositionOnBoard board field = (findFieldIndex . filter p) zippedRows
 
         findFieldIndex :: [(Int, Row)] -> (Float, Float)
         findFieldIndex [(y, row)] = (fromIntegral . fromJust $ elemIndex field row, fromIntegral y)
+
+-- Returns True if x is an int to n decimal places
+isInt :: (Integral a, RealFrac b) => b -> a -> Bool
+isInt x n = round (10^fromIntegral n * x - fromIntegral (round x)) == 0
+
+-- Returns the type of field at a certain location on the board
+fieldAtPosition :: (Int, Int) -> Board -> Int -> Field
+fieldAtPosition (x, y) board numberOfColumns = concat board !! (numberOfColumns * y + x)
+
+-- Returns the field in a certain direction
+fieldAtFuturePosition :: (Float, Float) -> Board -> MovementDirection -> Int -> Field
+fieldAtFuturePosition (x, y) board md numberOfColumns = concat board !! (numberOfColumns * roundY md y + roundX md x)
+  where
+    -- Return a rounding method to use depending on the direction we want to travel
+    roundY :: MovementDirection -> (Float -> Int)
+    roundY Model.Up     = ceiling
+    roundY Model.Down   = floor
+    roundY Model.Left   = round
+    roundY Model.Right  = round
+    roundY _            = round
+
+    roundX :: MovementDirection -> (Float -> Int)
+    roundX Model.Up    = round
+    roundX Model.Down  = round
+    roundX Model.Left  = floor
+    roundX Model.Right = ceiling
+    roundX _           = round
+
+-- Check if there is a Pacdot or Empty field in the new direction
+isFieldEmptyOrPacdot :: MovementDirection -> Board -> Int -> Float -> (Float, Float) -> Bool
+isFieldEmptyOrPacdot Model.None  _     _               _         _     = False
+isFieldEmptyOrPacdot Model.Up    board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x, y + distance) board Model.Up) numberOfColumns
+isFieldEmptyOrPacdot Model.Down  board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x, y - distance) board Model.Down) numberOfColumns
+isFieldEmptyOrPacdot Model.Left  board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x - distance, y) board Model.Left) numberOfColumns
+isFieldEmptyOrPacdot Model.Right board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x + distance, y) board Model.Right) numberOfColumns
+
+emptyOrPacdotHelper :: Field -> Bool
+emptyOrPacdotHelper field = field ==  Empty || field == Pacdot 
+                                            || field == BlinkyHome 
+                                            || field == InkyHome 
+                                            || field == ClydeHome 
+                                            || field == PinkyHome 
