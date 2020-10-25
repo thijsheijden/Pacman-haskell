@@ -22,21 +22,20 @@ input :: Event -> GameState -> IO GameState
 input e gstate = return (inputKey e gstate)
 
 inputKey :: Event -> GameState -> GameState
-inputKey (EventKey (Char c) _ _ _) gstate
-  = -- If the user presses a character key, show that one
-    gstate
-inputKey _ gstate = gstate -- Otherwise keep the same
+inputKey (EventKey (Char c) _ _ _) gstate = gstate { player = newPlayer c (player gstate) }
+                                                    where 
+                                                      newPlayer :: Char -> Player -> Player
+                                                      newPlayer 'w' player = updateMovementDirection Model.Up player
+                                                      newPlayer 's' player = updateMovementDirection Model.Down player
+                                                      newPlayer 'a' player = updateMovementDirection Model.Left player
+                                                      newPlayer 'd' player = updateMovementDirection Model.Right player
+                                                      newPlayer _ player = updateMovementDirection (direction player) player
 
+-- other input
+inputKey _ gstate = gstate
 
 updateGhost :: Ghost -> Ghost
-updateGhost ghost = ghost { ghostDirection = nextDir (ghostDirection ghost) }
+updateGhost ghost = ghost
 
 updatePlayer :: Player -> Player
-updatePlayer player = player { playerDirection = nextDir (playerDirection player) }
-
-nextDir :: MovementDirection -> MovementDirection
-nextDir None = Model.Up
-nextDir Model.Up = Model.Right
-nextDir Model.Right = Model.Down
-nextDir Model.Down = Model.Left
-nextDir Model.Left = Model.Up
+updatePlayer player = player
