@@ -3,14 +3,16 @@
 module Controller where
 
 import Model
-
+import Player
+import Ghost
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 import System.Random
 
 -- | Handle one iteration of the game
 step :: Float -> GameState -> IO GameState
-step secs gstate = return $ gstate {  elapsedTime = elapsedTime gstate + secs, 
+step secs gstate = return $ gstate {  elapsedTime = elapsedTime gstate + secs,
+                                      elapsedFrames = elapsedFrames gstate + 1,
                                       player = updatePlayer (player gstate),
                                       blinky = updateGhost (blinky gstate), 
                                       inky = updateGhost (inky gstate), 

@@ -70,7 +70,7 @@ main = do
   stdGen <- newStdGen
   map <- readFile "map.txt"
   
-  playIO (InWindow "Pacman" (720, 720) (0, 0)) -- Or FullScreen
+  playIO (InWindow "Pacman" (800, 720) (0, 0)) -- Or FullScreen
               black            -- Background color
               30               -- Frames per second
               (initialState stdGen map [horizontal, 

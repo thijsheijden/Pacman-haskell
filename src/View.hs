@@ -4,6 +4,8 @@ module View where
 
 import Graphics.Gloss
 import Model
+import Player
+import Ghost
 
 view :: GameState -> IO Picture
 view = return . viewPure
@@ -14,7 +16,9 @@ viewPure gstate = pictures [renderBoard gstate,
                             renderGhost (blinky gstate) gstate, 
                             renderGhost (inky gstate) gstate, 
                             renderGhost (clyde gstate) gstate, 
-                            renderGhost (pinky gstate) gstate]
+                            renderGhost (pinky gstate) gstate,
+                            renderElapsedTime gstate (elapsedTime gstate),
+                            renderElapsedFrames gstate (elapsedFrames gstate)]
 
 renderBoard :: GameState -> Picture
 renderBoard gstate = pictures $ map (renderBoardRow gstate) (zip [0 ..] (board gstate))
@@ -28,3 +32,9 @@ renderPlayer player gstate = render gstate player (position player)
 
 renderGhost :: Ghost -> GameState -> Picture
 renderGhost ghost gstate = render gstate ghost (position ghost)
+
+renderElapsedTime :: GameState -> Float -> Picture
+renderElapsedTime gstate et = scaleAndTranslate gstate ((color white . text . show) et) (21, 1)
+
+renderElapsedFrames :: GameState -> Int -> Picture
+renderElapsedFrames gstate f = scaleAndTranslate gstate ((color white . text . show) f) (21, 2.5)

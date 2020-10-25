@@ -78,6 +78,10 @@ data Player = Player {  playerPosition  :: Point,
                         elapsedPlayerFrames   :: Int
                     }
 
+data PlayerAnimationState = Open | Closed
+
+data PlayerState = PlayerAlive | PlayerDead
+
 data Ghost  = Ghost { ghostPosition   :: Point,
                       ghostState      :: GhostState,
                       home            :: Point,
@@ -88,10 +92,6 @@ data Ghost  = Ghost { ghostPosition   :: Point,
                     }
 
 data State = Playing | GameOver | Paused
-
-data PlayerAnimationState = Open | Closed
-
-data PlayerState = PlayerAlive | PlayerDead
 
 data GhostState = Chasing | Scared | Dead | Scattering
 
@@ -157,24 +157,10 @@ class HasDirection a where
   direction :: a -> MovementDirection
   updateMovementDirection :: MovementDirection -> a -> a
 
-instance HasDirection Player where
-  direction = playerDirection
-  updateMovementDirection direction player = player { playerDirection = direction}
-
-instance HasDirection Ghost where
-  direction = ghostDirection
-  updateMovementDirection direction ghost = ghost { ghostDirection = direction }
-
 -- Position typeclass
 -- All items which have a position should implement this
 class HasPosition a where
   position :: a -> Point
-
-instance HasPosition Player where
-  position = playerPosition
-
-instance HasPosition Ghost where
-  position = ghostPosition
 
 -- Renderable typeclass
 -- All items which can be rendered should implement this
@@ -208,32 +194,6 @@ instance Renderable Field where
   render gstate Cherry = scaleAndTranslate gstate (pics gstate !! 15)
 
   render gstate _ = translatePicture gstate (color white $ circleSolid 5)
-
--- Pacman renderable instance
-instance Renderable Player where
-  render gstate player = scaleAndTranslate gstate (currentPlayerSprite player (animationState player))
-    where currentPlayerSprite :: Player -> PlayerAnimationState -> Picture
-          currentPlayerSprite player Open   | direction player == Model.None = playerSprites player !! 6
-                                            | direction player == Model.Up = playerSprites player !! 4
-                                            | direction player == Model.Down = playerSprites player !! 5
-                                            | direction player == Model.Left = playerSprites player !! 6
-                                            | direction player == Model.Right = playerSprites player !! 7
-          currentPlayerSprite player Closed | direction player == Model.None = playerSprites player !! 6
-                                            | direction player == Model.Up = head $ playerSprites player
-                                            | direction player == Model.Down = playerSprites player !! 1
-                                            | direction player == Model.Left = playerSprites player !! 2
-                                            | direction player == Model.Right = playerSprites player !! 3
-
--- Ghost renderable instance
-instance Renderable Ghost where
-  render gstate ghost = scaleAndTranslate gstate (currentGhostSprite ghost)
-    where currentGhostSprite :: Ghost -> Picture
-          currentGhostSprite ghost  | direction ghost == Model.None = head $ ghostSprites ghost
-                                    | direction ghost == Model.Up = head $ ghostSprites ghost
-                                    | direction ghost == Model.Down = ghostSprites ghost !! 1
-                                    | direction ghost == Model.Left = ghostSprites ghost !! 2
-                                    | direction ghost == Model.Right = ghostSprites ghost !! 3
-
 
 -- Function to scale a picture to a certain size
 scalePicture :: GameState -> Picture -> Picture
