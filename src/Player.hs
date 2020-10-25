@@ -15,21 +15,21 @@ instance HasDirection Player where
 -- If this is the case it checks if the board has an Empty or Pacdot field in the new direction
 -- If this is the case the function returns True, if not it returns False
 canChangeDirectionNow :: GameState -> MovementDirection -> Bool
-canChangeDirectionNow gstate md = canMovePosition md ((xSteps . player) gstate, (ySteps . player) gstate) && isFieldEmptyOrPacdot md (board gstate) ((round . numberOfColumns) gstate) 0.05 playerPosition
+canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gstate) && isFieldEmptyOrPacdot md (board gstate) ((round . numberOfColumns) gstate) 1 playerPosition
   where
     playerPosition = (position . player) gstate
 
     canMovePosition :: MovementDirection -> (Int, Int) -> Bool
-    canMovePosition Model.Up    (x, _) = allowedX x
-    canMovePosition Model.Down  (x, _) = allowedX x
-    canMovePosition Model.Left  (_, y) = allowedY y
-    canMovePosition Model.Right (_, y) = allowedY y
+    canMovePosition Model.Up    (xSteps, _) = allowedX xSteps
+    canMovePosition Model.Down  (xSteps, _) = allowedX xSteps
+    canMovePosition Model.Left  (_, ySteps) = allowedY ySteps
+    canMovePosition Model.Right (_, ySteps) = allowedY ySteps
 
     allowedX :: Int -> Bool
-    allowedX x = mod' x 10 == 0
+    allowedX xSteps = mod' xSteps 10 == 0
 
     allowedY :: Int -> Bool
-    allowedY y = mod' y 10 == 0
+    allowedY ySteps = mod' ySteps 10 == 0
 
 instance HasPosition Player where
   position          = playerPosition

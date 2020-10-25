@@ -273,8 +273,8 @@ isInt :: (Integral a, RealFrac b) => b -> a -> Bool
 isInt x n = round (10^fromIntegral n * x - fromIntegral (round x)) == 0
 
 -- Returns the type of field at a certain location on the board
-fieldAtPosition :: (Int, Int) -> Board -> Int -> Field
-fieldAtPosition (x, y) board numberOfColumns = concat board !! (numberOfColumns * y + x)
+fieldAtPosition :: (Float, Float) -> Board -> Int -> Field
+fieldAtPosition (x, y) board numberOfColumns = concat board !! (numberOfColumns * ceiling y + ceiling x)
 
 -- Returns the field in a certain direction
 fieldAtFuturePosition :: (Float, Float) -> Board -> MovementDirection -> Int -> Field
