@@ -12,7 +12,9 @@ updatePlayer gstate player = player { playerPosition = newPosition,
                                       xSteps = newXSteps,
                                       ySteps = newYSteps,
                                       playerAnimationState = newAnimationState,
-                                      elapsedPlayerFrames = elapsedPlayerFrames player + 1 }
+                                      elapsedPlayerFrames = elapsedPlayerFrames player + 1,
+                                      playerState = newState,
+                                      playerStateTimer = newStateTimer }
   where
     playerMovementObject = updatePlayerPosition (position player) (stepsTaken player) (round $ numberOfColumns gstate) (board gstate) (direction player) (playerFutureDirection player)
     newPosition = (fst . fst) playerMovementObject
@@ -30,6 +32,11 @@ updatePlayer gstate player = player { playerPosition = newPosition,
 
     -- The new player animation state, used for animating
     newAnimationState = updatePlayerAnimationState (elapsedFrames player) (playerAnimationState player)
+
+    -- The new state of the player
+    newPlayerStateAndTimer = updatePlayerState gstate (playerState player) (playerStateTimer player) (position player)
+    newState = snd newPlayerStateAndTimer
+    newStateTimer = fst newPlayerStateAndTimer
 
 {-|
   Update the position of the player
@@ -53,6 +60,15 @@ updatePlayerPosition (x, y) (xSteps, ySteps) numberOfColumns board md         fm
 
                                                                                     where
                                                                                       canMoveInDirection direction = isFieldEmptyOrPacdot direction board numberOfColumns 0.05 (x, y)
+
+-- |Determine if pacman is powered and what his updated powered timer is. If he is in the field of a power pacdot he will become powered for 20 seconds. Returns (poweredTimer, powered)
+-- TODO: Add a collision detection with the ghosts to be able to change the player state to dead
+updatePlayerState :: GameState -> PlayerState -> Float -> Point -> (Float, PlayerState)
+updatePlayerState gstate PlayerBoosted poweredTimer position  | poweredTimer < 0 = (0, PlayerAlive) -- If the state timer runs out, go back to the alive state
+                                                              | (isPowerPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate)) position = (20, PlayerBoosted) -- If the player runs over another powered pacdot, reset the timer
+                                                              | otherwise = (poweredTimer - (1/40), PlayerBoosted)  -- Otherwise remove 1 frame worth of time from the timer
+updatePlayerState gstate PlayerAlive   _            position  | (isPowerPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate)) position = (20, PlayerBoosted)  -- If the player runs over a powered pacdot change the state to powered
+                                                              | otherwise = (0, PlayerAlive)  -- If no powered pacdot is ran over keep the same state
 
 -- |Update the player animation state. Takes the elapsedFrames and current animation state and returns the new animation state
 updatePlayerAnimationState :: Int -> PlayerAnimationState -> PlayerAnimationState

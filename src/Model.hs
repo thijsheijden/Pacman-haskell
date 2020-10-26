@@ -58,6 +58,7 @@ initialPlayer pics = Player { playerSprites = pics,
                               playerDirection = None,
                               playerFutureDirection = None,
                               playerState = PlayerAlive,
+                              playerStateTimer = 0,
                               elapsedPlayerFrames = 0,
                               xSteps = 0,
                               ySteps = 0
@@ -81,6 +82,7 @@ rowToFields :: [String] -> Row
 rowToFields = map stringToField
   where stringToField :: String -> Field
         stringToField "p" = Pacdot
+        stringToField "pp" = PowerPacdot
 
         stringToField "uc" = UpCorner
         stringToField "dc" = DownCorner
@@ -153,6 +155,7 @@ data GameState = GameState {  gameState       :: State,
 -- |The player record object
 data Player = Player {  playerPosition        :: Point,
                         playerState           :: PlayerState,
+                        playerStateTimer      :: Float,
                         playerAnimationState  :: PlayerAnimationState,
                         playerDirection       :: MovementDirection,
                         playerFutureDirection :: MovementDirection,
@@ -169,7 +172,7 @@ data PlayerAnimationState = Open | Closed
 
 -- |The player state: Alive, dead, boosted
 data PlayerState = PlayerAlive | PlayerDead | PlayerBoosted
-  deriving (Eq)
+  deriving (Eq, Show)
 
 -- |The ghost record object
 data Ghost  = Ghost { ghostPosition   :: Point,
@@ -198,7 +201,7 @@ data Field = Pacdot | Energizer | Cherry | Empty | RightCorner | DownCorner | Le
             | RightRounded | TopRounded | BottomRounded
             | BlinkySpawn | InkySpawn | ClydeSpawn | PinkySpawn
             | BlinkyHome  | InkyHome  | ClydeHome  | PinkyHome
-            | Transporter
+            | Transporter | PowerPacdot
   deriving (Eq)
 type Row = [Field]
 type Board = [Row]
@@ -284,14 +287,17 @@ instance Renderable Field where
 
   render gstate Cherry = scaleAndTranslate gstate (pics gstate !! 15)
 
-  render gstate BlinkyHome = translatePicture gstate (color red . circleSolid $ 5)
-  render gstate InkyHome = translatePicture gstate (color (light blue) . circleSolid $ 5)
-  render gstate ClydeHome = translatePicture gstate (color cyan . circleSolid $ 5)
-  render gstate PinkyHome = translatePicture gstate (color magenta . circleSolid $ 5)
+  render gstate BlinkyHome = translatePicture gstate (color white . circleSolid $ 10)
+  render gstate InkyHome = translatePicture gstate (color white . circleSolid $ 10)
+  render gstate ClydeHome = translatePicture gstate (color white . circleSolid $ 10)
+  render gstate PinkyHome = translatePicture gstate (color white . circleSolid $ 10)
 
   render gstate Transporter = translatePicture gstate (color blue . circleSolid $ 5)
 
-  render gstate _ = translatePicture gstate (color white . circleSolid $ 5)
+  render gstate Pacdot = translatePicture gstate (color white . circleSolid $ 5)
+  render gstate PowerPacdot = translatePicture gstate (color white . circleSolid $ 10)
+
+  render gstate _ = translatePicture gstate (color black . circleSolid $ 1)
 
 --------------------------------------------------
 ----------------HELPER FUNCTIONS------------------
@@ -366,6 +372,7 @@ emptyOrPacdotHelper field = field ==  Empty || field == Pacdot
                                             || field == InkyHome 
                                             || field == ClydeHome 
                                             || field == PinkyHome
+                                            || field == PowerPacdot
 
 -- |Count how many pacdots there are on the board
 numberOfPacdotsOnTheBoard :: Board -> Int
@@ -376,10 +383,14 @@ numberOfPacdotsOnTheBoard = sum . map (length . filter p)
 
 -- |Helper function which takes a field and returns a boolean denoting whether it is a pacdot or equivalent field
 isPacdot :: Field -> Bool
-isPacdot f = f == Pacdot || f == BlinkyHome
-                          || f == InkyHome
-                          || f == ClydeHome
-                          || f == PinkyHome
+isPacdot f = f == Pacdot
+
+-- |Helper function which takes a field and returns a boolean denoting whether it is a power pacdot field
+isPowerPacdot :: Field -> Bool
+isPowerPacdot f = f == PowerPacdot  || f == BlinkyHome
+                                    || f == InkyHome
+                                    || f == ClydeHome
+                                    || f == PinkyHome
 
 -- |Eat the pacdot at a position
 eatPacdot :: Board -> Point -> Board

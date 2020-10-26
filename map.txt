@@ -4,7 +4,7 @@ v p rc dc p rc l l dc p v p rc l l dc p rc dc p v
 v p uc lc p uc l l lc p br p uc l l lc p uc lc p v
 v p p p p p p p p p p p p p p p p p p p v
 v p lr rr p tr p lr l l do l l rr p tr p lr rr p v
-v p p p p v p p p p v p p p p v p p p p v
+v pp p p p v p p p p v p p p p v p p p pp v
 uc l l dc p ro l l rr p br p lr l l lo p rc l l lc
 e e e v p v p p p p p p p p p v p v e e e
 lr l l lc p br p rc l l l l l dc p br p uc l l rr
@@ -16,7 +16,7 @@ v p p p p br p lr l l do l l rr p br p p p p v
 v p lr dc p p p p p p v p p p p p p rc rr p v
 v p p v p lr l l rr p br p lr l l rr p v p p v
 ro rr p br p p p p p p p p p p p p p br p lr lo
-v p p p p tr p lr l l l l l rr p tr p p p p v
+v pp p p p tr p lr l l l l l rr p tr p p p pp v
 v p rc l l lo p p p p p p p p p ro l l dc p v
 v p uc l l uo l l l rr p lr l l l uo l l lc p v
 v h4 p p p p p p p p p p p p p p p p p h3 v
