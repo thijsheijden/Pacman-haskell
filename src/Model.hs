@@ -10,6 +10,10 @@ import Data.List
 secsBetweenCycles :: Float
 secsBetweenCycles = 4
 
+--------------------------------------------------
+---------------INITIAL STATES---------------------
+--------------------------------------------------
+
 -- |Creating the initial gamestate record object
 initialState :: StdGen -> String -> [Picture] -> [Picture] -> [[Picture]] -> GameState
 initialState stdGen map pics playerSprites ghostSprites = GameState {  player = initialPlayer playerSprites,
@@ -65,6 +69,64 @@ initialGhost pics spawn home = Ghost {  ghostSprites = pics,
                                         ghostDirection = None,
                                         ghostState = Trapped
                                     }
+
+-- |Create the board from the map textfile
+createBoard :: String -> Board
+createBoard t = map (rowToFields . words) (lines t)
+
+-- |Map a string to the corresponding Field
+rowToFields :: [String] -> Row
+rowToFields = map stringToField
+  where stringToField :: String -> Field
+        stringToField "p" = Pacdot
+
+        stringToField "uc" = UpCorner
+        stringToField "dc" = DownCorner
+        stringToField "lc" = LeftCorner
+        stringToField "rc" = RightCorner
+
+        stringToField "l" = Horizontal
+        stringToField "v" = Vertical
+
+        stringToField "uo" = UpConnector
+        stringToField "do" = DownConnector
+        stringToField "lo" = LeftConnector
+        stringToField "ro" = RightConnector
+        stringToField "ao" = AllConnector
+
+        stringToField "tr" = TopRounded
+        stringToField "br" = BottomRounded
+        stringToField "rr" = RightRounded
+        stringToField "lr" = LeftRounded
+
+        stringToField "g1" = BlinkySpawn
+        stringToField "g2" = InkySpawn
+        stringToField "g3" = ClydeSpawn
+        stringToField "g4" = PinkySpawn
+
+        -- Will be drawn as pacdots later, for now this visualizes things
+        stringToField "h1" = BlinkyHome
+        stringToField "h2" = InkyHome
+        stringToField "h3" = ClydeHome
+        stringToField "h4" = PinkyHome
+
+        -- Will be drawn as pacdots later, for now this visualizes things
+        stringToField "t" = Transporter
+
+        stringToField "c" = Cherry
+
+        stringToField "e" = Empty
+
+        stringToField _ = Empty
+
+-- |Calculate the size a single square in our grid should be to make sure the map is as large as possible while not being larger than the viewport
+calculateGridSize :: Float -> Float -> Float
+calculateGridSize numberOfColumns numberOfRows  | 800 / numberOfColumns < 720 / numberOfRows = 800 / numberOfColumns
+                                                | otherwise = 720 / numberOfRows
+
+--------------------------------------------------
+-------------------DATA TYPES---------------------
+--------------------------------------------------
 
 -- |The gamestate record object
 data GameState = GameState {  gameState       :: State,
@@ -138,59 +200,9 @@ data Field = Pacdot | Energizer | Cherry | Empty | RightCorner | DownCorner | Le
 type Row = [Field]
 type Board = [Row]
 
--- |Create the board from the map textfile
-createBoard :: String -> Board
-createBoard t = map (rowToFields . words) (lines t)
-
--- |Map a string to the corresponding Field
-rowToFields :: [String] -> Row
-rowToFields = map stringToField
-  where stringToField :: String -> Field
-        stringToField "p" = Pacdot
-
-        stringToField "uc" = UpCorner
-        stringToField "dc" = DownCorner
-        stringToField "lc" = LeftCorner
-        stringToField "rc" = RightCorner
-
-        stringToField "l" = Horizontal
-        stringToField "v" = Vertical
-
-        stringToField "uo" = UpConnector
-        stringToField "do" = DownConnector
-        stringToField "lo" = LeftConnector
-        stringToField "ro" = RightConnector
-        stringToField "ao" = AllConnector
-
-        stringToField "tr" = TopRounded
-        stringToField "br" = BottomRounded
-        stringToField "rr" = RightRounded
-        stringToField "lr" = LeftRounded
-
-        stringToField "g1" = BlinkySpawn
-        stringToField "g2" = InkySpawn
-        stringToField "g3" = ClydeSpawn
-        stringToField "g4" = PinkySpawn
-
-        -- Will be drawn as pacdots later, for now this visualizes things
-        stringToField "h1" = BlinkyHome
-        stringToField "h2" = InkyHome
-        stringToField "h3" = ClydeHome
-        stringToField "h4" = PinkyHome
-
-        -- Will be drawn as pacdots later, for now this visualizes things
-        stringToField "t" = Transporter
-
-        stringToField "c" = Cherry
-
-        stringToField "e" = Empty
-
-        stringToField _ = Empty
-
--- |Calculate the size a single square in our grid should be to make sure the map is as large as possible while not being larger than the viewport
-calculateGridSize :: Float -> Float -> Float
-calculateGridSize numberOfColumns numberOfRows  | 800 / numberOfColumns < 720 / numberOfRows = 800 / numberOfColumns
-                                                | otherwise = 720 / numberOfRows
+--------------------------------------------------
+-----------------TYPE CLASSES---------------------
+--------------------------------------------------
 
 {-|
   Direction typeclass:
@@ -277,6 +289,10 @@ instance Renderable Field where
   render gstate Transporter = translatePicture gstate (color blue . circleSolid $ 5)
 
   render gstate _ = translatePicture gstate (color white . circleSolid $ 5)
+
+--------------------------------------------------
+----------------HELPER FUNCTIONS------------------
+--------------------------------------------------
 
 -- |Function to scale a picture to a certain size (all our bitmaps are 100x100 thus the gridSize should always be divided by 100)
 scalePicture :: GameState -> Picture -> Picture

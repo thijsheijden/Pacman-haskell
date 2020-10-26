@@ -77,6 +77,7 @@ canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gsta
     playerPosition = (position . player) gstate
 
     canMovePosition :: MovementDirection -> (Int, Int) -> Bool
+    canMovePosition Model.None  (_     , _) = True
     canMovePosition Model.Up    (xSteps, _) = allowedX xSteps
     canMovePosition Model.Down  (xSteps, _) = allowedX xSteps
     canMovePosition Model.Left  (_, ySteps) = allowedY ySteps
