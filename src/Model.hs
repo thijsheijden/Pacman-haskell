@@ -6,6 +6,7 @@ import System.Random
 import Graphics.Gloss
 import Data.Maybe
 import Data.List
+import Control.Lens hiding (Empty)
 
 secsBetweenCycles :: Float
 secsBetweenCycles = 4
@@ -31,7 +32,8 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
                                                           blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome,
                                                           inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome,
                                                           clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome,
-                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome
+                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome,
+                                                          pacDotsOnBoard = numberOfPacdotsOnTheBoard board
                                                         }
   where
     board = createBoard map
@@ -144,7 +146,8 @@ data GameState = GameState {  gameState       :: State,
                               numberOfColumns :: Float,
                               gridSize        :: Float,
                               pics            :: [Picture],
-                              stdGen          :: StdGen
+                              stdGen          :: StdGen,
+                              pacDotsOnBoard  :: Int
                           }
 
 -- |The player record object
@@ -326,8 +329,8 @@ isInt :: (Integral a, RealFrac b) => b -> a -> Bool
 isInt x n = round (10^fromIntegral n * x - fromIntegral (round x)) == 0
 
 -- |Returns the type of field at a certain location on the board
-fieldAtPosition :: (Float, Float) -> Board -> Int -> Field
-fieldAtPosition (x, y) board numberOfColumns = concat board !! (numberOfColumns * ceiling y + ceiling x)
+fieldAtPosition :: Board -> Int -> (Float, Float) -> Field
+fieldAtPosition board numberOfColumns (x, y) = concat board !! (numberOfColumns * round y + round x)
 
 -- |Returns the field in a certain direction
 fieldAtFuturePosition :: (Float, Float) -> Board -> MovementDirection -> Int -> Field
@@ -362,4 +365,26 @@ emptyOrPacdotHelper field = field ==  Empty || field == Pacdot
                                             || field == BlinkyHome 
                                             || field == InkyHome 
                                             || field == ClydeHome 
-                                            || field == PinkyHome 
+                                            || field == PinkyHome
+
+-- |Count how many pacdots there are on the board
+numberOfPacdotsOnTheBoard :: Board -> Int
+numberOfPacdotsOnTheBoard = sum . map (length . filter p)
+  where
+    p :: Field -> Bool
+    p = isPacdot
+
+-- |Helper function which takes a field and returns a boolean denoting whether it is a pacdot or equivalent field
+isPacdot :: Field -> Bool
+isPacdot f = f == Pacdot || f == BlinkyHome
+                          || f == InkyHome
+                          || f == ClydeHome
+                          || f == PinkyHome
+
+-- |Eat the pacdot at a position
+eatPacdot :: Board -> Point -> Board
+eatPacdot board = changeFieldAtPosition board Empty
+
+-- |Takes the board, a field and a position. Changes the field at the given position with the new field
+changeFieldAtPosition :: Board -> Field -> Point -> Board
+changeFieldAtPosition board field (x, y) = board & element (round y) . element (round x) .~ field

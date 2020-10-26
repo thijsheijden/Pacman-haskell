@@ -13,11 +13,21 @@ import System.Random
 step :: Float -> GameState -> IO GameState
 step secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate + secs,
                                       elapsedBoardFrames = elapsedBoardFrames gstate + 1,
-                                      player  = updatePlayer gstate (player gstate),
+                                      player  = newPlayer,
                                       blinky  = updateGhost gstate (blinky gstate), 
                                       inky    = updateGhost gstate (inky gstate), 
                                       clyde   = updateGhost gstate (clyde gstate), 
-                                      pinky   = updateGhost gstate (pinky gstate) }
+                                      pinky   = updateGhost gstate (pinky gstate),
+                                      score   = newScore,
+                                      pacDotsOnBoard = newPacdots,
+                                      board = newBoard }
+                                        where
+                                          newPlayer = updatePlayer gstate (player gstate)
+                                          newScorePacdotsAndBoard = updateScoreAndPacdots gstate newPlayer
+
+                                          newPacdots = (fst . fst) newScorePacdotsAndBoard
+                                          newScore   = (snd . fst) newScorePacdotsAndBoard
+                                          newBoard   = snd newScorePacdotsAndBoard
 
 -- | Handle user input
 input :: Event -> GameState -> IO GameState
@@ -52,3 +62,8 @@ updateGhost gstate ghost@(Ghost pos@(x,y) state _ direc _) = ghost {ghostState =
             | direc == Model.Left   = (x - step, y)
             | direc == Model.Right  = (x + step, y)
             | otherwise             = pos
+
+-- |Update the game score and the number of pacdots left on the map. Check if the Player is now in a Pacdot field, and if this is the case update the board as well. Returns ((newPacdots, newScore), newBoard)
+updateScoreAndPacdots :: GameState -> Player -> ((Int, Int), Board)
+updateScoreAndPacdots gstate player | (isPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate - 1, score gstate + 10), eatPacdot (board gstate) (position player))
+                                    | otherwise = ((pacDotsOnBoard gstate, score gstate), board gstate)

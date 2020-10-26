@@ -22,7 +22,7 @@ viewPure gstate = pictures [renderBoard gstate,
 
 -- |Render the board
 renderBoard :: GameState -> Picture
-renderBoard gstate = pictures $ map (renderBoardRow gstate) (zip [0 ..] (board gstate))
+renderBoard gstate = pictures $ zipWith (curry (renderBoardRow gstate)) [0 .. ] (board gstate)
 
 -- |Render a single row of the board
 renderBoardRow :: GameState -> (Float, Row) -> Picture
@@ -39,7 +39,7 @@ renderGhost ghost gstate = render gstate ghost (position ghost)
 
 -- |Render the elapsed time on the screen
 renderElapsedTime :: GameState -> Float -> Picture
-renderElapsedTime gstate _ = scaleAndTranslate gstate ((color white . text . show) ((direction . player) gstate)) (21, 1)
+renderElapsedTime gstate _ = scaleAndTranslate gstate ((color white . text . show) (pacDotsOnBoard gstate)) (21, 1)
 -- renderElapsedTime gstate et = scaleAndTranslate gstate ((color white . text . show) et) (21, 1)
 
 -- |Render the elapsed frames on the screen
