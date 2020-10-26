@@ -66,4 +66,5 @@ updateGhost gstate ghost@(Ghost pos@(x,y) state _ direc _) = ghost {ghostState =
 -- |Update the game score and the number of pacdots left on the map. Check if the Player is now in a Pacdot field, and if this is the case update the board as well. Returns ((newPacdots, newScore), newBoard)
 updateScoreAndPacdots :: GameState -> Player -> ((Int, Int), Board)
 updateScoreAndPacdots gstate player | (isPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate - 1, score gstate + 10), eatPacdot (board gstate) (position player))
+                                    | (isPowerPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate, score gstate), eatPacdot (board gstate) (position player))
                                     | otherwise = ((pacDotsOnBoard gstate, score gstate), board gstate)
