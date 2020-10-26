@@ -20,22 +20,28 @@ viewPure gstate = pictures [renderBoard gstate,
                             renderElapsedTime gstate (elapsedTime gstate),
                             renderElapsedFrames gstate (elapsedBoardFrames gstate)]
 
+-- |Render the board
 renderBoard :: GameState -> Picture
 renderBoard gstate = pictures $ map (renderBoardRow gstate) (zip [0 ..] (board gstate))
 
+-- |Render a single row of the board
 renderBoardRow :: GameState -> (Float, Row) -> Picture
 renderBoardRow gstate (yIndex, row) = pictures $ map (\(xIndex, fieldValue) -> render gstate fieldValue (xIndex, yIndex)) r
   where r = zip [0 ..] row
 
+-- |Render the player (Pacman)
 renderPlayer :: Player -> GameState -> Picture
 renderPlayer player gstate = render gstate player (position player)
 
+-- |Render a single ghost
 renderGhost :: Ghost -> GameState -> Picture
 renderGhost ghost gstate = render gstate ghost (position ghost)
 
+-- |Render the elapsed time on the screen
 renderElapsedTime :: GameState -> Float -> Picture
 renderElapsedTime gstate _ = scaleAndTranslate gstate ((color white . text . show) ((direction . player) gstate)) (21, 1)
 -- renderElapsedTime gstate et = scaleAndTranslate gstate ((color white . text . show) et) (21, 1)
 
+-- |Render the elapsed frames on the screen
 renderElapsedFrames :: GameState -> Int -> Picture
 renderElapsedFrames gstate f = scaleAndTranslate gstate ((color white . text . show) f) (21, 2.5)

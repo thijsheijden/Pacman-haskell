@@ -3,10 +3,12 @@ module Ghost where
 import Model
 import Graphics.Gloss
 
+-- Ghost HasDirection instance
 instance HasDirection Ghost where
   direction = ghostDirection
   updateMovementDirection gstate direction ghost = ghost { ghostDirection = direction }
 
+-- Ghost HasPosition instance
 instance HasPosition Ghost where
   position = ghostPosition
   stepsTaken ghost = (1, 1)

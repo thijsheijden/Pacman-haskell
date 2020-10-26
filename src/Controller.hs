@@ -37,10 +37,6 @@ inputKey (EventKey (Char c) _ _ _) gstate = gstate { player = newPlayer c (playe
 -- other input
 inputKey _ gstate = gstate
 
--- update the position, if there is no wall, 
--- otherwise go in the fututre direction, if there is no wall,
--- otherwise stay in the same place
-
 -- ghosts chase for 20 sec, scatter for 7
 updateGhost :: GameState -> Ghost -> Ghost
 updateGhost gstate ghost@(Ghost pos@(x,y) state _ direc _) = ghost {ghostState = newstate, ghostPosition = newpos}

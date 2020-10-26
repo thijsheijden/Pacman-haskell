@@ -4,7 +4,7 @@ import Model
 import Graphics.Gloss
 import Data.Fixed
 
--- Function which updates the player every game step
+-- |Function which updates the player every game step
 updatePlayer :: GameState -> Player -> Player
 updatePlayer gstate player = player { playerPosition = newPosition,
                                       playerDirection = newMovementDirection,
@@ -31,9 +31,11 @@ updatePlayer gstate player = player { playerPosition = newPosition,
     -- The new player animation state, used for animating
     newAnimationState = updatePlayerAnimationState (elapsedFrames player) (playerAnimationState player)
 
--- Update the position of the player
--- Returns the new position of the player and a boolean which denotes whether to remove the future direction (because the player went in that direction)
--- Returns the xSteps and ySteps after the move as second pair of values
+{-|
+  Update the position of the player
+  Returns the new position of the player and a boolean which denotes whether to remove the future direction (because the player went in that direction)
+  Returns the xSteps and ySteps after the move as second pair of values
+-}
 updatePlayerPosition :: Point -> (Int, Int) -> Int -> Board -> MovementDirection -> MovementDirection -> ((Point, Bool), (Int, Int))
 updatePlayerPosition (x, y) (xSteps, ySteps) _               _     Model.None _   = (((x, y), False), (xSteps, ySteps))
 updatePlayerPosition (x, y) (xSteps, ySteps) numberOfColumns board md         fmd | fmd == Model.Up && allowedX xSteps && canMoveInDirection fmd = (((x, y + 0.1), True), (xSteps, ySteps + 1))
@@ -52,7 +54,7 @@ updatePlayerPosition (x, y) (xSteps, ySteps) numberOfColumns board md         fm
                                                                                     where
                                                                                       canMoveInDirection direction = isFieldEmptyOrPacdot direction board numberOfColumns 0.05 (x, y)
 
--- Update the player animation state used for animating the player
+-- |Update the player animation state. Takes the elapsedFrames and current animation state and returns the new animation state
 updatePlayerAnimationState :: Int -> PlayerAnimationState -> PlayerAnimationState
 updatePlayerAnimationState elapsedFrames animationState | elapsedFrames `mod` 10 == 0 = nextState animationState
                                                         | otherwise = animationState
@@ -63,10 +65,12 @@ instance HasDirection Player where
                                                     | otherwise = player { playerFutureDirection = direction }
   -- updateMovementDirection gstate direction player = player { playerDirection = direction }
 
--- Checks if the movement direction can be changed right now or should be set as the future direction
--- Takes the current player position and checks if the numbers are essentially round
--- If this is the case it checks if the board has an Empty or Pacdot field in the new direction
--- If this is the case the function returns True, if not it returns False
+{-|
+  Checks if the movement direction can be changed right now or should be set as the future direction
+  Takes the current player position and checks if the numbers are essentially round
+  If this is the case it checks if the board has an Empty or Pacdot field in the new direction
+  If this is the case the function returns True, if not it returns False
+-}
 canChangeDirectionNow :: GameState -> MovementDirection -> Bool
 canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gstate) && isFieldEmptyOrPacdot md (board gstate) ((round . numberOfColumns) gstate) 1 playerPosition
   where
@@ -78,21 +82,30 @@ canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gsta
     canMovePosition Model.Left  (_, ySteps) = allowedY ySteps
     canMovePosition Model.Right (_, ySteps) = allowedY ySteps
 
--- Helper methods which tell whether the player is in the center of a square
--- The player moves 0.1 per iteration and a single block is size 1
--- Thus when the user has made 10 steps he is in the center of the next block
--- Mod' used due to the possibility of negative numbers
+{-|
+  Helper method which tell whether the player is in the center of a square
+  The player moves 0.1 per iteration and a single block is size 1
+  Thus when the user has made 10 steps he is in the center of the next block
+  Mod' used due to the possibility of negative numbers
+-}
 allowedX :: Int -> Bool
 allowedX xSteps = mod' xSteps 10 == 0
 
+{-|
+  Helper method which tell whether the player is in the center of a square
+  The player moves 0.1 per iteration and a single block is size 1
+  Thus when the user has made 10 steps he is in the center of the next block
+  Mod' used due to the possibility of negative numbers
+-}
 allowedY :: Int -> Bool
 allowedY ySteps = mod' ySteps 10 == 0
 
+-- Pacman HasPosition instance
 instance HasPosition Player where
   position          = playerPosition
   stepsTaken player = (xSteps player, ySteps player)
 
--- Pacman renderable instance
+-- Pacman Renderable instance
 instance Renderable Player where
   render gstate player = scaleAndTranslate gstate (currentPlayerSprite player (playerAnimationState player))
     where currentPlayerSprite :: Player -> PlayerAnimationState -> Picture
@@ -107,9 +120,11 @@ instance Renderable Player where
                                             | direction player == Model.Left  = playerSprites player !! 2
                                             | direction player == Model.Right = playerSprites player !! 3
 
+-- PlayerAnimationState AnimationState instance
 instance AnimationState PlayerAnimationState where
   nextState Open = Closed
   nextState Closed = Open
 
+-- Pacman Animatable instance
 instance Animatable Player where
   elapsedFrames = elapsedPlayerFrames
