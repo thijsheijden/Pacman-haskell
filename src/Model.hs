@@ -260,6 +260,14 @@ class Animatable a where
   elapsedFrames :: a -> Int
 
 {-|
+  Updateable typeclass:
+  Everything that can be updated in the 'step' function should implement this.
+  Gives access to the 'update' function which takes a Gamestate and returns an updated version of the object.
+-}
+class Updateable a where
+  update :: GameState -> a
+
+{-|
   Renderable instances
   Board renderable instance
 -}

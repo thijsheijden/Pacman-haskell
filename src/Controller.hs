@@ -22,8 +22,8 @@ step secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate + secs,
                                       pacDotsOnBoard = newPacdots,
                                       board = newBoard }
                                         where
-                                          newPlayer = updatePlayer gstate (player gstate)
-                                          newScorePacdotsAndBoard = updateScoreAndPacdots gstate newPlayer
+                                          newPlayer = update gstate
+                                          newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
 
                                           newPacdots = (fst . fst) newScorePacdotsAndBoard
                                           newScore   = (snd . fst) newScorePacdotsAndBoard

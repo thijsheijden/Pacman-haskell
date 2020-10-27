@@ -145,3 +145,7 @@ instance AnimationState PlayerAnimationState where
 -- Pacman Animatable instance
 instance Animatable Player where
   elapsedFrames = elapsedPlayerFrames
+
+-- Pacman Updateable instance
+instance Updateable Player where
+  update gstate = updatePlayer gstate (player gstate)
