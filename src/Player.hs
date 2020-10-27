@@ -2,15 +2,15 @@ module Player where
 
 import Model
 import Graphics.Gloss
-import Data.Fixed
+
 
 -- |Function which updates the player every game step
 updatePlayer :: GameState -> Player -> Player
 updatePlayer gstate player = player { playerPosition = newPosition,
                                       playerDirection = newMovementDirection,
                                       playerFutureDirection = newFutureMovementDirection,
-                                      xSteps = newXSteps,
-                                      ySteps = newYSteps,
+                                      playerXSteps = newXSteps,
+                                      playerYSteps = newYSteps,
                                       playerAnimationState = newAnimationState,
                                       elapsedPlayerFrames = elapsedPlayerFrames player + 1,
                                       playerState = newState,
@@ -106,28 +106,12 @@ canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gsta
     canMovePosition Model.Left  (_, ySteps) = allowedY ySteps
     canMovePosition Model.Right (_, ySteps) = allowedY ySteps
 
-{-|
-  Helper method which tell whether the player is in the center of a square
-  The player moves 0.1 per iteration and a single block is size 1
-  Thus when the user has made 10 steps he is in the center of the next block
-  Mod' used due to the possibility of negative numbers
--}
-allowedX :: Int -> Bool
-allowedX xSteps = mod' xSteps 10 == 0
-
-{-|
-  Helper method which tell whether the player is in the center of a square
-  The player moves 0.1 per iteration and a single block is size 1
-  Thus when the user has made 10 steps he is in the center of the next block
-  Mod' used due to the possibility of negative numbers
--}
-allowedY :: Int -> Bool
-allowedY ySteps = mod' ySteps 10 == 0
-
 -- Pacman HasPosition instance
 instance HasPosition Player where
   position          = playerPosition
   stepsTaken player = (xSteps player, ySteps player)
+  xSteps            = playerXSteps
+  ySteps            = playerYSteps
 
 -- Pacman Renderable instance
 instance Renderable Player where

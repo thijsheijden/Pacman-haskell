@@ -21,13 +21,15 @@ normalStep :: Float -> GameState -> IO GameState
 normalStep secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate + secs,
                                       elapsedBoardFrames = elapsedBoardFrames gstate + 1,
                                       player  = newPlayer,
-                                      blinky  = updateGhost gstate (blinky gstate), 
-                                      inky    = updateGhost gstate (inky gstate), 
-                                      clyde   = updateGhost gstate (clyde gstate), 
-                                      pinky   = updateGhost gstate (pinky gstate),
+                                      -- blinky  = updateGhost gstate (blinky gstate), 
+                                      -- inky    = updateGhost gstate (inky gstate), 
+                                      -- clyde   = updateGhost gstate (clyde gstate), 
+                                      -- pinky   = updateGhost gstate (pinky gstate),
+                                      blinky = updateBlinky gstate (blinky gstate),
                                       score   = newScore,
                                       pacDotsOnBoard = newPacdots,
-                                      board = newBoard }
+                                      board = newBoard,
+                                      gameState = newGameState }
                                         where
                                           newPlayer = update gstate (player gstate)
                                           newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
@@ -35,6 +37,9 @@ normalStep secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate +
                                           newPacdots = (fst . fst) newScorePacdotsAndBoard
                                           newScore   = (snd . fst) newScorePacdotsAndBoard
                                           newBoard   = snd newScorePacdotsAndBoard
+
+                                          newGameState  | newPacdots == 0 = GameOver
+                                                        | otherwise = Playing
 
 -- | Handle user input
 input :: Event -> GameState -> IO GameState
@@ -55,20 +60,20 @@ inputKey (EventKey (Char c) _ _ _) gstate = gstate { player = newPlayer c (playe
 inputKey _ gstate = gstate
 
 -- ghosts chase for 20 sec, scatter for 7
-updateGhost :: GameState -> Ghost -> Ghost
-updateGhost gstate ghost@(Ghost pos@(x,y) state _ spawn direc _) = ghost {ghostState = newstate, ghostPosition = newpos}
-  where
-    time    = elapsedBoardFrames gstate + 1
-    newstate| time `mod` 800 == 0   = Model.Scattering    -- not the way to do it, but changing state works
-            | time `mod` 400 == 0   = Model.Chasing
-            | otherwise             = state
-    step    | state == Scattering   = 0.2
-            | otherwise             = 0.1
-    newpos  | direc == Model.Up     = (x, y - step)
-            | direc == Model.Down   = (x, y + step)
-            | direc == Model.Left   = (x - step, y)
-            | direc == Model.Right  = (x + step, y)
-            | otherwise             = pos
+-- updateGhost :: GameState -> Ghost -> Ghost
+-- updateGhost gstate ghost@(Ghost _ pos@(x,y) state _ spawn direc _ _ _ ) = ghost {ghostState = newstate, ghostPosition = newpos}
+--   where
+--     time    = elapsedBoardFrames gstate + 1
+--     newstate| time `mod` 800 == 0   = Model.Scattering    -- not the way to do it, but changing state works
+--             | time `mod` 400 == 0   = Model.Chasing
+--             | otherwise             = state
+--     step    | state == Scattering   = 0.2
+--             | otherwise             = 0.1
+--     newpos  | direc == Model.Up     = (x, y - step)
+--             | direc == Model.Down   = (x, y + step)
+--             | direc == Model.Left   = (x - step, y)
+--             | direc == Model.Right  = (x + step, y)
+--             | otherwise             = pos
 
 -- |Update the game score and the number of pacdots left on the map. Check if the Player is now in a Pacdot field, and if this is the case update the board as well. Returns ((newPacdots, newScore), newBoard)
 updateScoreAndPacdots :: GameState -> Player -> ((Int, Int), Board)

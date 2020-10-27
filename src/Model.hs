@@ -7,6 +7,7 @@ import Graphics.Gloss
 import Data.Maybe
 import Data.List
 import Control.Lens hiding (Empty)
+import Data.Fixed
 
 secsBetweenCycles :: Float
 secsBetweenCycles = 4
@@ -17,7 +18,7 @@ secsBetweenCycles = 4
 
 -- |Creating the initial gamestate record object
 initialState :: StdGen -> String -> [Picture] -> [Picture] -> [[Picture]] -> GameState
-initialState stdGen map pics playerSprites ghostSprites = GameState {  player = initialPlayer playerSprites,
+initialState stdGen map pics playerSprites ghostSprites = GameState {  player = initialPlayer playerSprites spawnPosition,
                                                           stdGen = stdGen,
                                                           score = 0,
                                                           gameState = Playing,
@@ -29,11 +30,12 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
                                                           multiplier = 1,
                                                           elapsedTime = 0,
                                                           elapsedBoardFrames = 0,
-                                                          blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome,
-                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome,
-                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome,
-                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome,
-                                                          pacDotsOnBoard = numberOfPacdotsOnTheBoard board
+                                                          blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome Blinky,
+                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky,
+                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde,
+                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky,
+                                                          pacDotsOnBoard = numberOfPacdotsOnTheBoard board,
+                                                          spawnLocation = spawnPosition
                                                         }
   where
     board = createBoard map
@@ -48,32 +50,37 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
     inkyHome = findFieldPositionOnBoard board InkyHome
     clydeHome = findFieldPositionOnBoard board ClydeHome
     pinkyHome = findFieldPositionOnBoard board PinkyHome
+    spawnPosition = findFieldPositionOnBoard board Spawn
 
 -- |Creating the initial Player record object
-initialPlayer :: [Picture] -> Player
-initialPlayer pics = Player { playerSprites = pics,
-                              currentPlayerSprite = pics !! 6,
-                              playerPosition = (10, 8),
-                              playerAnimationState = Open,
-                              playerDirection = None,
-                              playerFutureDirection = None,
-                              playerState = PlayerAlive,
-                              playerStateTimer = 0,
-                              elapsedPlayerFrames = 0,
-                              xSteps = 0,
-                              ySteps = 0,
-                              lives = 3
-                            }
+initialPlayer :: [Picture] -> Point -> Player
+initialPlayer pics spawnLocation = Player { playerSprites = pics,
+                                            currentPlayerSprite = pics !! 6,
+                                            playerPosition = spawnLocation,
+                                            playerAnimationState = Open,
+                                            playerDirection = None,
+                                            playerFutureDirection = None,
+                                            playerState = PlayerAlive,
+                                            playerStateTimer = 0,
+                                            elapsedPlayerFrames = 0,
+                                            playerXSteps = 0,
+                                            playerYSteps = 0,
+                                            lives = 3
+                                          }
 
 -- |Creating an initial ghost record object
-initialGhost :: [Picture] -> (Float, Float) -> (Float, Float) -> Ghost
-initialGhost pics spawn home = Ghost {  ghostSprites = pics,
-                                        ghostPosition = spawn,
-                                        spawn = spawn,
-                                        home = home,
-                                        ghostDirection = None,
-                                        ghostState = Trapped
-                                    }
+initialGhost :: [Picture] -> (Float, Float) -> (Float, Float) -> GhostName -> Ghost
+initialGhost pics spawn home name = Ghost {   ghostSprites = pics,
+                                              ghostName = name,
+                                              ghostPosition = spawn,
+                                              spawn = spawn,
+                                              home = home,
+                                              ghostDirection = None,
+                                              ghostState = Trapped,
+                                              ghostXSteps = 0,
+                                              ghostYSteps = 0,
+                                              targetPosition = (0, 0)
+                                          }
 
 -- |Create the board from the map textfile
 createBoard :: String -> Board
@@ -123,6 +130,8 @@ rowToFields = map stringToField
 
         stringToField "e" = Empty
 
+        stringToField "s" = Spawn
+
         stringToField _ = Empty
 
 -- |Calculate the size a single square in our grid should be to make sure the map is as large as possible while not being larger than the viewport
@@ -151,7 +160,8 @@ data GameState = GameState {  gameState       :: State,
                               gridSize        :: Float,
                               pics            :: [Picture],
                               stdGen          :: StdGen,
-                              pacDotsOnBoard  :: Int
+                              pacDotsOnBoard  :: Int,
+                              spawnLocation   :: Point        -- The location pacman spawns and the location to which the ghosts will be freed
                           }
 
 -- |The player record object
@@ -164,8 +174,8 @@ data Player = Player {  playerPosition        :: Point,
                         currentPlayerSprite   :: Picture,
                         playerSprites         :: [Picture],
                         elapsedPlayerFrames   :: Int,
-                        xSteps                :: Int,
-                        ySteps                :: Int,
+                        playerXSteps          :: Int,
+                        playerYSteps          :: Int,
                         lives                 :: Int
                     }
 
@@ -178,12 +188,16 @@ data PlayerState = PlayerAlive | PlayerDead | PlayerBoosted
   deriving (Eq, Show)
 
 -- |The ghost record object
-data Ghost  = Ghost { ghostPosition   :: Point,
+data Ghost  = Ghost { ghostName       :: GhostName,   -- Weet niet hoe er anders gepattern matched kan worden op welke ghost er wordt meegegeven aan de update functie van het ghost object?
+                      ghostPosition   :: Point,
                       ghostState      :: GhostState,
                       home            :: Point,
                       spawn           :: Point,
                       ghostDirection  :: MovementDirection,
-                      ghostSprites    :: [Picture]
+                      ghostSprites    :: [Picture],
+                      ghostXSteps     :: Int,
+                      ghostYSteps     :: Int,
+                      targetPosition  :: Point
                     }
 
 -- |The state of the game: Playing, game over, paused
@@ -193,6 +207,8 @@ data State = Playing | GameOver | Paused
 -- |The state of a ghost: Chasing, scared, dead, scattering, trapped
 data GhostState = Chasing | Scared | Dead | Scattering | Trapped
   deriving (Eq)
+
+data GhostName = Blinky | Inky | Clyde | Pinky
 
 -- |The direction the ghost/player is moving or going to move: Up, down, left, right, none
 data MovementDirection = Up | Down | Left | Right | None
@@ -205,7 +221,7 @@ data Field = Pacdot | Energizer | Cherry | Empty | RightCorner | DownCorner | Le
             | RightRounded | TopRounded | BottomRounded
             | BlinkySpawn | InkySpawn | ClydeSpawn | PinkySpawn
             | BlinkyHome  | InkyHome  | ClydeHome  | PinkyHome
-            | Transporter | PowerPacdot
+            | Transporter | PowerPacdot | Spawn
   deriving (Eq)
 type Row = [Field]
 type Board = [Row]
@@ -235,6 +251,8 @@ class HasPosition a where
   position    :: a -> Point
   -- |Get the steps taken in x and y directions. In the form (xSteps, ySteps)
   stepsTaken  :: a -> (Int, Int)
+  xSteps :: a -> Int
+  ySteps :: a -> Int
 
 
 {-|
@@ -309,6 +327,8 @@ instance Renderable Field where
   render gstate Pacdot = translatePicture gstate (color white . circleSolid $ 5)
   render gstate PowerPacdot = translatePicture gstate (color white . circleSolid $ 10)
 
+  render gstate Spawn = translatePicture gstate (color red . circleSolid $ 5)
+
   render gstate _ = translatePicture gstate (color black . circleSolid $ 1)
 
 --------------------------------------------------
@@ -370,6 +390,24 @@ roundX Model.Left  = floor
 roundX Model.Right = ceiling
 roundX _           = round
 
+{-|
+  Helper method which tell whether the player is in the center of a square
+  The player moves 0.1 per iteration and a single block is size 1
+  Thus when the user has made 10 steps he is in the center of the next block
+  Mod' used due to the possibility of negative numbers
+-}
+allowedX :: Int -> Bool
+allowedX xSteps = mod' xSteps 10 == 0
+
+{-|
+  Helper method which tell whether the player is in the center of a square
+  The player moves 0.1 per iteration and a single block is size 1
+  Thus when the user has made 10 steps he is in the center of the next block
+  Mod' used due to the possibility of negative numbers
+-}
+allowedY :: Int -> Bool
+allowedY ySteps = mod' ySteps 10 == 0
+
 -- |Check if there is a Pacdot or Empty field in the new direction
 checkFieldInFuturePosition :: (Field -> Bool) -> MovementDirection -> Board -> Int -> Float -> (Float, Float) -> Bool
 checkFieldInFuturePosition _ Model.None  _     _               _         _     = False
@@ -386,6 +424,7 @@ emptyOrPacdotHelper field = field ==  Empty || field == Pacdot
                                             || field == ClydeHome 
                                             || field == PinkyHome
                                             || field == PowerPacdot
+                                            || field == Spawn
 
 -- |Count how many pacdots there are on the board
 numberOfPacdotsOnTheBoard :: Board -> Int
@@ -396,7 +435,7 @@ numberOfPacdotsOnTheBoard = sum . map (length . filter p)
 
 -- |Helper function which takes a field and returns a boolean denoting whether it is a pacdot or equivalent field
 isPacdot :: Field -> Bool
-isPacdot f = f == Pacdot
+isPacdot f = f == Pacdot || f == Spawn
 
 -- |Helper function which takes a field and returns a boolean denoting whether it is a transporter field
 isTransporter :: Field -> Bool
@@ -416,3 +455,7 @@ eatPacdot board = changeFieldAtPosition board Empty
 -- |Takes the board, a field and a position. Changes the field at the given position with the new field
 changeFieldAtPosition :: Board -> Field -> Point -> Board
 changeFieldAtPosition board field (x, y) = board & element (round y) . element (round x) .~ field
+
+-- |Calculate distance between two points, not squared to reduce strain on system. Higher number = higher distance
+distanceBetweenTwoPoints :: Point -> Point -> Float
+distanceBetweenTwoPoints (x1, y1) (x2, y2) = (x2 - x1) ^ 2 + (y2 - y1) ^ 2

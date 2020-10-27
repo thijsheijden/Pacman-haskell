@@ -74,7 +74,7 @@ main = do
   
   playIO (InWindow "Pacman" (800, 720) (0, 0)) -- Or FullScreen
               black            -- Background color
-              40               -- Frames per second
+              144               -- Frames per second
               (initialState stdGen map [horizontal, 
                                         vertical, 
                                         rightCorner, 
