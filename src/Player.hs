@@ -16,7 +16,7 @@ updatePlayer gstate player = player { playerPosition = newPosition,
                                       playerState = newState,
                                       playerStateTimer = newStateTimer }
   where
-    playerMovementObject = updatePlayerPosition (position player) (stepsTaken player) (round $ numberOfColumns gstate) (board gstate) (direction player) (playerFutureDirection player)
+    playerMovementObject = updatePlayerPosition (position player) (stepsTaken player) (round $ numberOfColumns gstate) (round $ numberOfRows gstate) (board gstate) (direction player) (playerFutureDirection player)
     newPosition = (fst . fst) playerMovementObject
     
     newXSteps = (fst . snd) playerMovementObject
@@ -43,23 +43,30 @@ updatePlayer gstate player = player { playerPosition = newPosition,
   Returns the new position of the player and a boolean which denotes whether to remove the future direction (because the player went in that direction)
   Returns the xSteps and ySteps after the move as second pair of values
 -}
-updatePlayerPosition :: Point -> (Int, Int) -> Int -> Board -> MovementDirection -> MovementDirection -> ((Point, Bool), (Int, Int))
-updatePlayerPosition (x, y) (xSteps, ySteps) _               _     Model.None _   = (((x, y), False), (xSteps, ySteps))
-updatePlayerPosition (x, y) (xSteps, ySteps) numberOfColumns board md         fmd | fmd == Model.Up && allowedX xSteps && canMoveInDirection fmd = (((x, y + 0.1), True), (xSteps, ySteps + 1))
-                                                                                  | fmd == Model.Down && allowedX xSteps && canMoveInDirection fmd = (((x, y - 0.1), True), (xSteps, ySteps - 1))
-                                                                                  | fmd == Model.Left && allowedY ySteps && canMoveInDirection fmd = (((x - 0.1, y), True), (xSteps - 1, ySteps))
-                                                                                  | fmd == Model.Right && allowedY ySteps && canMoveInDirection fmd = (((x + 0.1, y), True), (xSteps + 1, ySteps))
+updatePlayerPosition :: Point -> (Int, Int) -> Int -> Int -> Board -> MovementDirection -> MovementDirection -> ((Point, Bool), (Int, Int))
+updatePlayerPosition (x, y) (xSteps, ySteps) _               _            _     Model.None _    = (((x, y), False), (xSteps, ySteps))
+updatePlayerPosition (x, y) (xSteps, ySteps) numberOfColumns numberOfRows board md         fmd  | fmd == Model.Up && allowedX xSteps && canMoveInDirection fmd = (((x, y + 0.1), True), (xSteps, ySteps + 1))
+                                                                                                | fmd == Model.Down && allowedX xSteps && canMoveInDirection fmd = (((x, y - 0.1), True), (xSteps, ySteps - 1))
+                                                                                                | fmd == Model.Left && allowedY ySteps && canMoveInDirection fmd = (((x - 0.1, y), True), (xSteps - 1, ySteps))
+                                                                                                | fmd == Model.Right && allowedY ySteps && canMoveInDirection fmd = (((x + 0.1, y), True), (xSteps + 1, ySteps))
 
-                                                                                  -- If we can't go into the future movement direction continue in the normal movement direction, if possible
-                                                                                  | md == Model.Up && allowedX xSteps && canMoveInDirection md = (((x, y + 0.1), False), (xSteps, ySteps + 1))
-                                                                                  | md == Model.Down && allowedX xSteps && canMoveInDirection md = (((x, y - 0.1), False), (xSteps, ySteps - 1))
-                                                                                  | md == Model.Left && allowedY ySteps && canMoveInDirection md = (((x - 0.1, y), False), (xSteps - 1, ySteps))
-                                                                                  | md == Model.Right && allowedY ySteps && canMoveInDirection md = (((x + 0.1, y), False), (xSteps + 1, ySteps))
+                                                                                                -- If we can't go into the future direction, check if we are halfway through a transporter field
+                                                                                                | md == Model.Up && allowedX xSteps && transporterFieldInDirection md = (((x, 0), False), (xSteps, 0))
+                                                                                                | md == Model.Down && allowedX xSteps && transporterFieldInDirection md = (((x, fromIntegral numberOfRows - 1), False), (xSteps, 0))
+                                                                                                | md == Model.Left && allowedY ySteps && transporterFieldInDirection md = (((fromIntegral numberOfColumns - 1, y), False), (0, ySteps))
+                                                                                                | md == Model.Right && allowedY ySteps && transporterFieldInDirection md = (((0, y), False), (0, ySteps))
 
-                                                                                  | otherwise = (((x, y), False), (xSteps, ySteps))
+                                                                                                -- If we can't go into the future movement direction continue in the normal movement direction, if possible
+                                                                                                | md == Model.Up && allowedX xSteps && canMoveInDirection md = (((x, y + 0.1), False), (xSteps, ySteps + 1))
+                                                                                                | md == Model.Down && allowedX xSteps && canMoveInDirection md = (((x, y - 0.1), False), (xSteps, ySteps - 1))
+                                                                                                | md == Model.Left && allowedY ySteps && canMoveInDirection md = (((x - 0.1, y), False), (xSteps - 1, ySteps))
+                                                                                                | md == Model.Right && allowedY ySteps && canMoveInDirection md = (((x + 0.1, y), False), (xSteps + 1, ySteps))
 
-                                                                                    where
-                                                                                      canMoveInDirection direction = isFieldEmptyOrPacdot direction board numberOfColumns 0.05 (x, y)
+                                                                                                | otherwise = (((x, y), False), (xSteps, ySteps))
+
+                                                                                                  where
+                                                                                                    canMoveInDirection direction = checkFieldInFuturePosition emptyOrPacdotHelper direction board numberOfColumns 0.05 (x, y)
+                                                                                                    transporterFieldInDirection direction = checkFieldInFuturePosition isTransporter direction board numberOfColumns 0.05 (x, y)
 
 -- |Determine if pacman is powered and what his updated powered timer is. If he is in the field of a power pacdot he will become powered for 20 seconds. Returns (poweredTimer, powered)
 -- TODO: Add a collision detection with the ghosts to be able to change the player state to dead
@@ -88,7 +95,7 @@ instance HasDirection Player where
   If this is the case the function returns True, if not it returns False
 -}
 canChangeDirectionNow :: GameState -> MovementDirection -> Bool
-canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gstate) && isFieldEmptyOrPacdot md (board gstate) ((round . numberOfColumns) gstate) 1 playerPosition
+canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gstate) && checkFieldInFuturePosition emptyOrPacdotHelper md (board gstate) ((round . numberOfColumns) gstate) 1 playerPosition
   where
     playerPosition = (position . player) gstate
 

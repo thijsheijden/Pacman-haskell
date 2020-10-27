@@ -366,12 +366,12 @@ fieldAtFuturePosition (x, y) board md numberOfColumns = concat board !! (numberO
     roundX _           = round
 
 -- |Check if there is a Pacdot or Empty field in the new direction
-isFieldEmptyOrPacdot :: MovementDirection -> Board -> Int -> Float -> (Float, Float) -> Bool
-isFieldEmptyOrPacdot Model.None  _     _               _         _     = False
-isFieldEmptyOrPacdot Model.Up    board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x, y + distance) board Model.Up) numberOfColumns
-isFieldEmptyOrPacdot Model.Down  board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x, y - distance) board Model.Down) numberOfColumns
-isFieldEmptyOrPacdot Model.Left  board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x - distance, y) board Model.Left) numberOfColumns
-isFieldEmptyOrPacdot Model.Right board numberOfColumns distance (x, y) = (emptyOrPacdotHelper . fieldAtFuturePosition (x + distance, y) board Model.Right) numberOfColumns
+checkFieldInFuturePosition :: (Field -> Bool) -> MovementDirection -> Board -> Int -> Float -> (Float, Float) -> Bool
+checkFieldInFuturePosition _ Model.None  _     _               _         _     = False
+checkFieldInFuturePosition f Model.Up    board numberOfColumns distance (x, y) = (f . fieldAtFuturePosition (x, y + distance) board Model.Up) numberOfColumns
+checkFieldInFuturePosition f Model.Down  board numberOfColumns distance (x, y) = (f . fieldAtFuturePosition (x, y - distance) board Model.Down) numberOfColumns
+checkFieldInFuturePosition f Model.Left  board numberOfColumns distance (x, y) = (f . fieldAtFuturePosition (x - distance, y) board Model.Left) numberOfColumns
+checkFieldInFuturePosition f Model.Right board numberOfColumns distance (x, y) = (f . fieldAtFuturePosition (x + distance, y) board Model.Right) numberOfColumns
 
 -- |Helper function for the 'isFieldEmptyOrPacdot' function
 emptyOrPacdotHelper :: Field -> Bool
@@ -392,6 +392,10 @@ numberOfPacdotsOnTheBoard = sum . map (length . filter p)
 -- |Helper function which takes a field and returns a boolean denoting whether it is a pacdot or equivalent field
 isPacdot :: Field -> Bool
 isPacdot f = f == Pacdot
+
+-- |Helper function which takes a field and returns a boolean denoting whether it is a transporter field
+isTransporter :: Field -> Bool
+isTransporter f = f == Transporter
 
 -- |Helper function which takes a field and returns a boolean denoting whether it is a power pacdot field
 isPowerPacdot :: Field -> Bool
