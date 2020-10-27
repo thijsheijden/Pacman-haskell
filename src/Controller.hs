@@ -18,28 +18,27 @@ step secs gstate  | gameState gstate == Paused = return gstate                  
 
 -- |Perform one standard step in the game. The game is not paused, the player is not dead, the player has not won etc
 normalStep :: Float -> GameState -> IO GameState
-normalStep secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate + secs,
-                                      elapsedBoardFrames = elapsedBoardFrames gstate + 1,
-                                      player  = newPlayer,
-                                      -- blinky  = updateGhost gstate (blinky gstate), 
-                                      -- inky    = updateGhost gstate (inky gstate), 
-                                      -- clyde   = updateGhost gstate (clyde gstate), 
-                                      -- pinky   = updateGhost gstate (pinky gstate),
-                                      blinky = updateBlinky gstate (blinky gstate),
-                                      score   = newScore,
-                                      pacDotsOnBoard = newPacdots,
-                                      board = newBoard,
-                                      gameState = newGameState }
-                                        where
-                                          newPlayer = update gstate (player gstate)
-                                          newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
+normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gstate + secs,
+                                            elapsedBoardFrames  = elapsedBoardFrames gstate + 1,
+                                            player              = newPlayer,
+                                            blinky              = updateGhost gstate (blinky gstate),
+                                            inky                = updateGhost gstate (inky gstate),
+                                            clyde               = updateGhost gstate (clyde gstate),
+                                            pinky               = updateGhost gstate (pinky gstate),
+                                            score               = newScore,
+                                            pacDotsOnBoard      = newPacdots,
+                                            board               = newBoard,
+                                            gameState           = newGameState }
+                                              where
+                                                newPlayer = update gstate (player gstate)
+                                                newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
 
-                                          newPacdots = (fst . fst) newScorePacdotsAndBoard
-                                          newScore   = (snd . fst) newScorePacdotsAndBoard
-                                          newBoard   = snd newScorePacdotsAndBoard
+                                                newPacdots = (fst . fst) newScorePacdotsAndBoard
+                                                newScore   = (snd . fst) newScorePacdotsAndBoard
+                                                newBoard   = snd newScorePacdotsAndBoard
 
-                                          newGameState  | newPacdots == 0 = GameOver
-                                                        | otherwise = Playing
+                                                newGameState  | newPacdots == 0 = GameOver
+                                                              | otherwise = Playing
 
 -- | Handle user input
 input :: Event -> GameState -> IO GameState

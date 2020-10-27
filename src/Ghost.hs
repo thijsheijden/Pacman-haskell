@@ -7,39 +7,40 @@ import Data.Ord
 import System.Random
 import Player
 
--- |One iteration update for ghost Blinky
-updateBlinky :: GameState -> Ghost -> Ghost
-updateBlinky gstate blinky@Ghost { ghostState = Trapped } = blinky
-updateBlinky gstate blinky = blinky { ghostPosition = newPosition,
-                                      targetPosition = newTargetPosition,
-                                      ghostXSteps = newXSteps,
-                                      ghostYSteps = newYSteps,
-                                      ghostDirection = newMovementDirection }
-  where
-    newTargetPosition = (position . player) gstate
-    possibleMovementDirections = possibleGhostDirections blinky (direction blinky) (position blinky) (board gstate) (round $ numberOfColumns gstate)
-    newMovementDirection = fastestDirectionToTargetPosition gstate possibleMovementDirections (ghostState blinky) blinky newTargetPosition
+-- |Function that releases a ghost and moves them to the spawn location on the map
+releaseGhost :: Ghost -> Point -> Ghost
+releaseGhost ghost spawn = ghost { ghostState = Chasing, ghostPosition = spawn }
 
-    speed | ghostState blinky == Scared = 0.2
+-- |One iteration update for a ghost
+updateGhost :: GameState -> Ghost -> Ghost
+updateGhost gstate ghost@Ghost { ghostState = Trapped }   | (lives . player) gstate < 3 && elapsedTime gstate >  ((*) 0.5 . fromIntegral . releaseTime) ghost = releaseGhost ghost (spawnLocation gstate)  -- If pacman has died before, release at half time
+                                                          | (floor . elapsedTime) gstate > releaseTime ghost = releaseGhost ghost (spawnLocation gstate)
+                                                          | otherwise = ghost
+
+updateGhost gstate ghost = ghost {  ghostPosition = newPosition,
+                                    targetPosition = newTargetPosition,
+                                    ghostXSteps = newXSteps,
+                                    ghostYSteps = newYSteps,
+                                    ghostDirection = newMovementDirection }
+  where
+    newTargetPosition = getGhostTargetPosition gstate ghost
+    possibleMovementDirections = possibleGhostDirections ghost (direction ghost) (position ghost) (board gstate) (round $ numberOfColumns gstate)
+    newMovementDirection = fastestDirectionToTargetPosition gstate possibleMovementDirections (ghostState ghost) ghost newTargetPosition
+
+    speed | ghostState ghost == Scared = 0.2
           | otherwise = 0.1
 
-    newPositionAndSteps = updateGhostPosition newMovementDirection speed (position blinky) (stepsTaken blinky)
+    newPositionAndSteps = updateGhostPosition newMovementDirection speed (position ghost) (stepsTaken ghost)
 
     newPosition = fst newPositionAndSteps
     newXSteps = (fst . snd) newPositionAndSteps
     newYSteps = (snd . snd) newPositionAndSteps
 
--- |One iteration update for ghost Inky
-updateInky :: GameState -> Ghost -> Ghost
-updateInky gstate inky = undefined
-
--- |One iteration update for ghost Clyde
-updateClyde :: GameState -> Ghost -> Ghost
-updateClyde gstate clyde = undefined
-
--- |One iteration update for ghost Pinky
-updatePinky :: GameState -> Ghost -> Ghost
-updatePinky gstate pinky = undefined
+getGhostTargetPosition :: GameState -> Ghost -> Point
+getGhostTargetPosition gstate Ghost { ghostName = Blinky }  = (position . player) gstate
+getGhostTargetPosition gstate Ghost { ghostName = Inky}     = (14, 14)
+getGhostTargetPosition gstate Ghost { ghostName = Clyde}     = (14, 14)
+getGhostTargetPosition gstate Ghost { ghostName = Pinky}     = (14, 14)
 
 -- |Helper function that determines which direction the ghost can go into. Returns a list of possible directions and the point they lead to
 possibleGhostDirections :: Ghost -> MovementDirection -> Point -> Board -> Int -> [(MovementDirection, Point)]
@@ -105,7 +106,4 @@ instance Renderable Ghost where
 
 -- Ghost Updateable instance
 instance Updateable Ghost where
-  update gstate blinky@Ghost { ghostName = Blinky }   = updateBlinky gstate blinky
-  update gstate inky@Ghost { ghostName = Inky }       = updateInky gstate inky
-  update gstate clyde@Ghost { ghostName = Clyde }     = updateClyde gstate clyde
-  update gstate pinky@Ghost { ghostName = Pinky }     = updatePinky gstate pinky
+  update gstate = updateGhost gstate

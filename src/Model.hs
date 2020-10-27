@@ -30,10 +30,10 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
                                                           multiplier = 1,
                                                           elapsedTime = 0,
                                                           elapsedBoardFrames = 0,
-                                                          blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome Blinky,
-                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky,
-                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde,
-                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky,
+                                                          blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome Blinky 20,
+                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky 30,
+                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde 40,
+                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky 50,
                                                           pacDotsOnBoard = numberOfPacdotsOnTheBoard board,
                                                           spawnLocation = spawnPosition
                                                         }
@@ -69,18 +69,19 @@ initialPlayer pics spawnLocation = Player { playerSprites = pics,
                                           }
 
 -- |Creating an initial ghost record object
-initialGhost :: [Picture] -> (Float, Float) -> (Float, Float) -> GhostName -> Ghost
-initialGhost pics spawn home name = Ghost {   ghostSprites = pics,
-                                              ghostName = name,
-                                              ghostPosition = spawn,
-                                              spawn = spawn,
-                                              home = home,
-                                              ghostDirection = None,
-                                              ghostState = Trapped,
-                                              ghostXSteps = 0,
-                                              ghostYSteps = 0,
-                                              targetPosition = (0, 0)
-                                          }
+initialGhost :: [Picture] -> (Float, Float) -> (Float, Float) -> GhostName -> Int -> Ghost
+initialGhost pics spawn home name releaseTime = Ghost {   ghostSprites = pics,
+                                                          ghostName = name,
+                                                          ghostPosition = spawn,
+                                                          spawn = spawn,
+                                                          home = home,
+                                                          ghostDirection = None,
+                                                          ghostState = Trapped,
+                                                          ghostXSteps = 0,
+                                                          ghostYSteps = 0,
+                                                          targetPosition = (0, 0),
+                                                          releaseTime = releaseTime
+                                                      }
 
 -- |Create the board from the map textfile
 createBoard :: String -> Board
@@ -197,7 +198,8 @@ data Ghost  = Ghost { ghostName       :: GhostName,   -- Weet niet hoe er anders
                       ghostSprites    :: [Picture],
                       ghostXSteps     :: Int,
                       ghostYSteps     :: Int,
-                      targetPosition  :: Point
+                      targetPosition  :: Point,
+                      releaseTime     :: Int
                     }
 
 -- |The state of the game: Playing, game over, paused
