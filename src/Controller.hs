@@ -9,9 +9,16 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 import System.Random
 
--- | Handle one iteration of the game
+-- | Determine what kind of update we need and delegate it to the corresponding function
 step :: Float -> GameState -> IO GameState
-step secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate + secs,
+step secs gstate  | gameState gstate == Paused = return gstate                               -- If the game is paused return the previous gstate, no updates occur
+                  | (lives . player) gstate == 0 || gameState gstate == GameOver = undefined -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
+                  | (playerState . player) gstate == PlayerDead = undefined                  -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
+                  | otherwise = normalStep secs gstate                                       -- Continue the game with a normal update/step
+
+-- |Perform one standard step in the game. The game is not paused, the player is not dead, the player has not won etc
+normalStep :: Float -> GameState -> IO GameState
+normalStep secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate + secs,
                                       elapsedBoardFrames = elapsedBoardFrames gstate + 1,
                                       player  = newPlayer,
                                       blinky  = updateGhost gstate (blinky gstate), 
@@ -22,7 +29,7 @@ step secs gstate = return $ gstate {  elapsedTime   = elapsedTime gstate + secs,
                                       pacDotsOnBoard = newPacdots,
                                       board = newBoard }
                                         where
-                                          newPlayer = update gstate
+                                          newPlayer = update gstate (player gstate)
                                           newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
 
                                           newPacdots = (fst . fst) newScorePacdotsAndBoard
@@ -49,7 +56,7 @@ inputKey _ gstate = gstate
 
 -- ghosts chase for 20 sec, scatter for 7
 updateGhost :: GameState -> Ghost -> Ghost
-updateGhost gstate ghost@(Ghost pos@(x,y) state _ direc _) = ghost {ghostState = newstate, ghostPosition = newpos}
+updateGhost gstate ghost@(Ghost pos@(x,y) state _ spawn direc _) = ghost {ghostState = newstate, ghostPosition = newpos}
   where
     time    = elapsedBoardFrames gstate + 1
     newstate| time `mod` 800 == 0   = Model.Scattering    -- not the way to do it, but changing state works

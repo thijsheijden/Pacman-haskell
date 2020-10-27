@@ -61,13 +61,15 @@ initialPlayer pics = Player { playerSprites = pics,
                               playerStateTimer = 0,
                               elapsedPlayerFrames = 0,
                               xSteps = 0,
-                              ySteps = 0
+                              ySteps = 0,
+                              lives = 3
                             }
 
 -- |Creating an initial ghost record object
 initialGhost :: [Picture] -> (Float, Float) -> (Float, Float) -> Ghost
 initialGhost pics spawn home = Ghost {  ghostSprites = pics,
                                         ghostPosition = spawn,
+                                        spawn = spawn,
                                         home = home,
                                         ghostDirection = None,
                                         ghostState = Trapped
@@ -163,7 +165,8 @@ data Player = Player {  playerPosition        :: Point,
                         playerSprites         :: [Picture],
                         elapsedPlayerFrames   :: Int,
                         xSteps                :: Int,
-                        ySteps                :: Int
+                        ySteps                :: Int,
+                        lives                 :: Int
                     }
 
 -- |The player animation state: Open, closed
@@ -178,6 +181,7 @@ data PlayerState = PlayerAlive | PlayerDead | PlayerBoosted
 data Ghost  = Ghost { ghostPosition   :: Point,
                       ghostState      :: GhostState,
                       home            :: Point,
+                      spawn           :: Point,
                       ghostDirection  :: MovementDirection,
                       ghostSprites    :: [Picture]
                     }
@@ -265,7 +269,7 @@ class Animatable a where
   Gives access to the 'update' function which takes a Gamestate and returns an updated version of the object.
 -}
 class Updateable a where
-  update :: GameState -> a
+  update :: GameState -> a -> a
 
 {-|
   Renderable instances
@@ -349,21 +353,22 @@ fieldAtPosition board numberOfColumns (x, y) = concat board !! (numberOfColumns 
 -- |Returns the field in a certain direction
 fieldAtFuturePosition :: (Float, Float) -> Board -> MovementDirection -> Int -> Field
 fieldAtFuturePosition (x, y) board md numberOfColumns = concat board !! (numberOfColumns * roundY md y + roundX md x)
-  where
-    -- Return a rounding method to use depending on the direction we want to travel
-    roundY :: MovementDirection -> (Float -> Int)
-    roundY Model.Up     = ceiling
-    roundY Model.Down   = floor
-    roundY Model.Left   = round
-    roundY Model.Right  = round
-    roundY _            = round
 
-    roundX :: MovementDirection -> (Float -> Int)
-    roundX Model.Up    = round
-    roundX Model.Down  = round
-    roundX Model.Left  = floor
-    roundX Model.Right = ceiling
-    roundX _           = round
+-- |Return a rounding method to use depending on the direction we want to travel
+roundY :: MovementDirection -> (Float -> Int)
+roundY Model.Up     = ceiling
+roundY Model.Down   = floor
+roundY Model.Left   = round
+roundY Model.Right  = round
+roundY _            = round
+
+-- |Return a rounding method to use depending on the direction we want to travel
+roundX :: MovementDirection -> (Float -> Int)
+roundX Model.Up    = round
+roundX Model.Down  = round
+roundX Model.Left  = floor
+roundX Model.Right = ceiling
+roundX _           = round
 
 -- |Check if there is a Pacdot or Empty field in the new direction
 checkFieldInFuturePosition :: (Field -> Bool) -> MovementDirection -> Board -> Int -> Float -> (Float, Float) -> Bool

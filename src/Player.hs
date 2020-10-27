@@ -95,7 +95,7 @@ instance HasDirection Player where
   If this is the case the function returns True, if not it returns False
 -}
 canChangeDirectionNow :: GameState -> MovementDirection -> Bool
-canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gstate) && checkFieldInFuturePosition emptyOrPacdotHelper md (board gstate) ((round . numberOfColumns) gstate) 1 playerPosition
+canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gstate) && checkFieldInFuturePosition emptyOrPacdotHelper md (board gstate) ((round . numberOfColumns) gstate) 0.05 playerPosition
   where
     playerPosition = (position . player) gstate
 
@@ -155,4 +155,4 @@ instance Animatable Player where
 
 -- Pacman Updateable instance
 instance Updateable Player where
-  update gstate = updatePlayer gstate (player gstate)
+  update gstate player = updatePlayer gstate player

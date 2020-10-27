@@ -23,3 +23,6 @@ instance Renderable Ghost where
                                     | direction ghost   == Model.Down     = ghostSprites ghost !! 1
                                     | direction ghost   == Model.Left     = ghostSprites ghost !! 2
                                     | direction ghost   == Model.Right    = ghostSprites ghost !! 3
+
+instance Updateable Ghost where
+  update gstate ghost = ghost
