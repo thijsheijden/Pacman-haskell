@@ -30,7 +30,7 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
                                                           multiplier = 1,
                                                           elapsedTime = 0,
                                                           elapsedBoardFrames = 0,
-                                                          blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome Blinky 20,
+                                                          blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome Blinky 5,
                                                           inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky 30,
                                                           clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde 40,
                                                           pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky 50,
@@ -224,7 +224,7 @@ data Field = Pacdot | Energizer | Cherry | Empty | RightCorner | DownCorner | Le
             | BlinkySpawn | InkySpawn | ClydeSpawn | PinkySpawn
             | BlinkyHome  | InkyHome  | ClydeHome  | PinkyHome
             | Transporter | PowerPacdot | Spawn
-  deriving (Eq)
+  deriving (Eq, Show)
 type Row = [Field]
 type Board = [Row]
 
@@ -411,12 +411,12 @@ allowedY :: Int -> Bool
 allowedY ySteps = mod' ySteps 10 == 0
 
 -- |Check if there is a Pacdot or Empty field in the new direction
-checkFieldInFuturePosition :: (Field -> Bool) -> MovementDirection -> Board -> Int -> Float -> (Float, Float) -> Bool
-checkFieldInFuturePosition _ Model.None  _     _               _         _     = False
-checkFieldInFuturePosition f Model.Up    board numberOfColumns distance (x, y) = (f . fieldAtFuturePosition (x, y + distance) board Model.Up) numberOfColumns
-checkFieldInFuturePosition f Model.Down  board numberOfColumns distance (x, y) = (f . fieldAtFuturePosition (x, y - distance) board Model.Down) numberOfColumns
-checkFieldInFuturePosition f Model.Left  board numberOfColumns distance (x, y) = (f . fieldAtFuturePosition (x - distance, y) board Model.Left) numberOfColumns
-checkFieldInFuturePosition f Model.Right board numberOfColumns distance (x, y) = (f . fieldAtFuturePosition (x + distance, y) board Model.Right) numberOfColumns
+checkFieldInFuturePosition :: (Field -> Bool) -> MovementDirection -> Board -> Int -> (Float, Float) -> Bool
+checkFieldInFuturePosition _ Model.None  _     _                        _     = False
+checkFieldInFuturePosition f Model.Up    board numberOfColumns pos = (f . fieldAtFuturePosition pos board Model.Up) numberOfColumns
+checkFieldInFuturePosition f Model.Down  board numberOfColumns pos = (f . fieldAtFuturePosition pos board Model.Down) numberOfColumns
+checkFieldInFuturePosition f Model.Left  board numberOfColumns pos = (f . fieldAtFuturePosition pos board Model.Left) numberOfColumns
+checkFieldInFuturePosition f Model.Right board numberOfColumns pos = (f . fieldAtFuturePosition pos board Model.Right) numberOfColumns
 
 -- |Helper function for the 'isFieldEmptyOrPacdot' function
 emptyOrPacdotHelper :: Field -> Bool
@@ -458,6 +458,27 @@ eatPacdot board = changeFieldAtPosition board Empty
 changeFieldAtPosition :: Board -> Field -> Point -> Board
 changeFieldAtPosition board field (x, y) = board & element (round y) . element (round x) .~ field
 
+-- |Get a point a set distance in the movement direction
+pointAtDistanceInMovementDirection :: Point -> MovementDirection -> Float -> Point
+pointAtDistanceInMovementDirection pos    Model.None  _         = pos
+pointAtDistanceInMovementDirection (x, y) Model.Up    distance  = (x, y + distance)
+pointAtDistanceInMovementDirection (x, y) Model.Down  distance  = (x, y - distance)
+pointAtDistanceInMovementDirection (x, y) Model.Left  distance  = (x - distance, y)
+pointAtDistanceInMovementDirection (x, y) Model.Right distance  = (x + distance, y)
+
+
+--------------------------------------------------
+----------------POINTS AND VECTORS----------------
+--------------------------------------------------
+
 -- |Calculate distance between two points, not squared to reduce strain on system. Higher number = higher distance
 distanceBetweenTwoPoints :: Point -> Point -> Float
-distanceBetweenTwoPoints (x1, y1) (x2, y2) = (x2 - x1) ^ 2 + (y2 - y1) ^ 2
+distanceBetweenTwoPoints (x1, y1) (x2, y2) = (x2 - x1) ^ 2 + (y2 - y1) ^ 2  
+
+-- |Create a vector between two points
+createVector :: Point -> Point -> Vector
+createVector (x1, y1) (x2, y2) = (x2 - x1, y2 - y1)
+
+-- |Scalar multiplication with vector
+(<*>) :: Float -> Vector -> Vector
+s <*> (x, y) = (s * x, s * y)

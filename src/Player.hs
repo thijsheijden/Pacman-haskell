@@ -65,8 +65,8 @@ updatePlayerPosition (x, y) (xSteps, ySteps) numberOfColumns numberOfRows board 
                                                                                                 | otherwise = (((x, y), False), (xSteps, ySteps))
 
                                                                                                   where
-                                                                                                    canMoveInDirection direction = checkFieldInFuturePosition emptyOrPacdotHelper direction board numberOfColumns 0.05 (x, y)
-                                                                                                    transporterFieldInDirection direction = checkFieldInFuturePosition isTransporter direction board numberOfColumns 0.05 (x, y)
+                                                                                                    canMoveInDirection direction = checkFieldInFuturePosition emptyOrPacdotHelper direction board numberOfColumns (pointAtDistanceInMovementDirection (x, y) direction 0.05)
+                                                                                                    transporterFieldInDirection direction = checkFieldInFuturePosition isTransporter direction board numberOfColumns (pointAtDistanceInMovementDirection (x, y) direction 0.05)
 
 -- |Determine if pacman is powered and what his updated powered timer is. If he is in the field of a power pacdot he will become powered for 20 seconds. Returns (poweredTimer, powered)
 -- TODO: Add a collision detection with the ghosts to be able to change the player state to dead
@@ -95,7 +95,7 @@ instance HasDirection Player where
   If this is the case the function returns True, if not it returns False
 -}
 canChangeDirectionNow :: GameState -> MovementDirection -> Bool
-canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gstate) && checkFieldInFuturePosition emptyOrPacdotHelper md (board gstate) ((round . numberOfColumns) gstate) 0.05 playerPosition
+canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gstate) && checkFieldInFuturePosition emptyOrPacdotHelper md (board gstate) ((round . numberOfColumns) gstate) (pointAtDistanceInMovementDirection playerPosition md 0.05)
   where
     playerPosition = (position . player) gstate
 
