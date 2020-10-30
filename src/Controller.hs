@@ -8,14 +8,16 @@ import Ghost
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 import System.Random
+import System.Directory
 import Data.List
 
--- | Determine what kind of update we need and delegate it to the corresponding function
+
+-- |Determine what kind of update we need and delegate it to the corresponding function
 step :: Float -> GameState -> IO GameState
-step secs gstate  | gameState gstate == Paused = return gstate                               -- If the game is paused return the previous gstate, no updates occur
-                  | (lives . player) gstate == 0 || gameState gstate == GameOver = undefined -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
-                  | (playerState . player) gstate == PlayerDead = writeHighScore gstate      -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
-                  | otherwise = normalStep secs gstate                                       -- Continue the game with a normal update/step
+step secs gstate  | gameState gstate == Paused = return gstate                                            -- If the game is paused return the previous gstate, no updates occur
+                  | (lives . player) gstate == 0 || gameState gstate == GameOver = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
+                  | (playerState . player) gstate == PlayerDead = writeHighScore gstate                   -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
+                  | otherwise = normalStep secs gstate                                                    -- Continue the game with a normal update/step
 
 -- |Perform one standard step in the game. The game is not paused, the player is not dead, the player has not won etc
 normalStep :: Float -> GameState -> IO GameState
@@ -49,7 +51,7 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                                 newScatterTimer = fst newScatterTimerAndGhostStates
                                                 newGhostStates = snd newScatterTimerAndGhostStates
 
--- | Handle user input
+-- |Handle user input
 input :: Event -> GameState -> IO GameState
 input e gstate = return (inputKey e gstate)
 
@@ -73,15 +75,27 @@ updateScoreAndPacdots gstate player | (isPacdot . fieldAtPosition (board gstate)
                                     | (isPowerPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate, score gstate), eatPacdot (board gstate) (position player))
                                     | otherwise = ((pacDotsOnBoard gstate, score gstate), board gstate)
 
+-- |Write a highscore to the txt file, only show the top 5
 writeHighScore :: GameState -> IO GameState
 writeHighScore gstate = do
-  highScores <- readFile "highscores.txt"
-  let l = lines highScores -- ["aaa 200", "bac 123"] etc
-  let w = map words l -- [["aaa", 200], ["bac", 123]] etc
+  name          <- getLine
+  h             <- readFile "highscores.txt"
+  case (readFile "highscores.txt") of 
+    null -> writeFile "highscores.txt" ""
+  h             <- readFile "highscores.txt"
+  let ls        = lines h      -- ["aaa 200", "bac 123"] etc
+  let ws        = map words ls -- [["aaa", "200"], ["bac", "123"]] etc
+  let newScores = unlines $ map unwords $ take 5 $ insertAndSaveHighscore name (score gstate) ws
+  writeFile "highscores2.txt" newScores
+  renameFile "highscores2.txt" "highscores.txt"
 
-  insertAndSaveHighscore (score gstate) w
+  return gstate --initialState (stdGen gstate) (readFile "map.txt") (pics gstate) (playerSprites $ player gstate) ghostSprites
+-- how to get ghostsprites in there? ^^^
 
-  return initialState (stdGen gstate) (readFile "map.txt") (pics gstate) (playerSprites $ player gstate) (ghostSprites ) { score = 0, elapsedTime = 0, elapsedBoardFrames = 0, pacDotsOnBoard = numberOfPacdotsOnTheBoard (board gstate), scatterTimer = 0, ghostStates = Chasing }
-
-insertAndSaveHighscore :: Int -> [[String]] -> IO ()
-insertAndSaveHighscore score [[]] = undefined
+-- non exhaustive error vvv
+insertAndSaveHighscore :: String -> Int -> [[String]] -> [[String]]
+insertAndSaveHighscore name score [[]]          = [[name, show score]]
+insertAndSaveHighscore name score l@[[_, s]]    | score > (read s :: Int) = [name, show score] : l
+                                                | otherwise               = l ++ [[name, show score]]
+insertAndSaveHighscore name score l@([n, s]:xs) | score > (read s :: Int) = [name, show score] : l
+                                                | otherwise               = [n, s] : insertAndSaveHighscore name score xs
