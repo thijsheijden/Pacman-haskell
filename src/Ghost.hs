@@ -23,18 +23,19 @@ updateGhost gstate ghost = ghost {  ghostPosition = newPosition,
                                     targetPosition = newTargetPosition,
                                     ghostXSteps = newXSteps,
                                     ghostYSteps = newYSteps,
-                                    ghostDirection = newMovementDirection }
+                                    ghostDirection = newMovementDirection,
+                                    ghostState = newGhostState }
   where
     newTargetPosition           = getGhostTargetPosition gstate ghost
     possibleMovementDirections  = possibleGhostDirections ghost (direction ghost) (position ghost) (board gstate) (round $ numberOfColumns gstate)
     newMovementDirection        = fastestDirectionToTargetPosition gstate possibleMovementDirections (ghostState ghost) ghost newTargetPosition
 
-    speed | ghostState ghost == Scared = 0.2
+    speed | newGhostState == Dead = 0.2
           | otherwise = 0.1
 
-    collisionWithPlayer = collision ghost (player gstate)
+    newGhostState = updateGhostState gstate ((playerState . player) gstate) (elapsedTime gstate) ghost
 
-    tileMovingTo        = trace (show collisionWithPlayer) $ fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
+    tileMovingTo        = fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
     newPositionAndSteps = updateGhostPosition tileMovingTo (round $ numberOfColumns gstate) newMovementDirection speed (position ghost) (stepsTaken ghost)
 
     newPosition = fst newPositionAndSteps
@@ -42,6 +43,12 @@ updateGhost gstate ghost = ghost {  ghostPosition = newPosition,
     newYSteps   = (snd . snd) newPositionAndSteps
 
 getGhostTargetPosition :: GameState -> Ghost -> Point
+
+-- If the ghosts are scattering they will move to their home point in one of the corners of the map
+getGhostTargetPosition _ ghost@Ghost { ghostState = Scattering } = home ghost
+
+-- If the ghost is dead he will move to the spawn location on the map
+getGhostTargetPosition gstate Ghost { ghostState = Dead } = spawnLocation gstate
 
 -- Blinky will try to get to the position the player is currently at
 getGhostTargetPosition gstate Ghost { ghostName = Blinky } = (position . player) gstate
@@ -109,6 +116,15 @@ updateGhostPosition _           _               Model.Up    speed (x, y)  (xStep
 updateGhostPosition _           _               Model.Down  speed (x, y)  (xSteps, ySteps) = ((x, y - speed), (xSteps, ySteps - floor (10 * speed)))
 updateGhostPosition _           _               Model.Left  speed (x, y)  (xSteps, ySteps) = ((x - speed, y), (xSteps - floor (10 * speed), ySteps))
 updateGhostPosition _           _               Model.Right speed (x, y)  (xSteps, ySteps) = ((x + speed, y), (xSteps + floor (10 * speed), ySteps))
+
+-- |Update the ghost state based on player state or time
+updateGhostState :: GameState -> PlayerState -> Float -> Ghost -> GhostState
+-- If the ghost is dead and has come by the spawn location change his state from dead to chasing
+updateGhostState gstate _             _           ghost@Ghost { ghostState = Dead } | (sqrt . distanceBetweenTwoPoints (position ghost)) (spawnLocation gstate) < 0.05 = Chasing
+-- If the ghost is not dead and the player is boosted, change the ghost state to scared, this will change the ghost sprite and make the ghost vulnerable for Pacman
+updateGhostState _      PlayerBoosted _ _ = Scared
+-- Scatter mode based on elapsed time?
+updateGhostState _ _ _ _ = Chasing
 
 -- Ghost HasDirection instance
 instance HasDirection Ghost where
