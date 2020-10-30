@@ -143,6 +143,6 @@ instance Updateable Player where
 
 -- Pacman Collidable instance
 instance Collidable Player where
-  hitbox player = Hitbox (x - 0.5, y + 0.5)
+  hitbox player = Hitbox (x - 0.15, y + 0.15)
     where
       (x, y) = position player

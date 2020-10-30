@@ -35,7 +35,9 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
                                                           clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde 9,
                                                           pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky 11,
                                                           pacDotsOnBoard = numberOfPacdotsOnTheBoard board,
-                                                          spawnLocation = spawnPosition
+                                                          spawnLocation = spawnPosition,
+                                                          scatterTimer = 0,       -- Must be changed to be blinky release + 20 seconds
+                                                          ghostStates = Chasing
                                                         }
   where
     board = createBoard map
@@ -162,7 +164,9 @@ data GameState = GameState {  gameState       :: State,
                               pics            :: [Picture],
                               stdGen          :: StdGen,
                               pacDotsOnBoard  :: Int,
-                              spawnLocation   :: Point        -- The location pacman spawns and the location to which the ghosts will be freed
+                              spawnLocation   :: Point,        -- The location pacman spawns and the location to which the ghosts will be freed
+                              scatterTimer    :: Float,
+                              ghostStates     :: GhostState
                           }
 
 -- |The player record object
@@ -208,7 +212,7 @@ data State = Playing | GameOver | Paused
 
 -- |The state of a ghost: Chasing, scared, dead, scattering, trapped
 data GhostState = Chasing | Scared | Dead | Scattering | Trapped
-  deriving (Eq)
+  deriving (Eq, Show)
 
 data GhostName = Blinky | Inky | Clyde | Pinky
   deriving (Eq)
@@ -230,7 +234,7 @@ type Row = [Field]
 type Board = [Row]
 
 -- |Hitbox data type, contains the top left point of the hitbox. All hitboxes are 1x1 in size so width and height are not needed.
-data Hitbox = Hitbox Point
+newtype Hitbox = Hitbox Point
 
 --------------------------------------------------
 -----------------TYPE CLASSES---------------------

@@ -39,7 +39,7 @@ renderGhost ghost gstate = render gstate ghost (position ghost)
 
 -- |Render the elapsed time on the screen
 renderElapsedTime :: GameState -> Float -> Picture
-renderElapsedTime gstate _ = scaleAndTranslate gstate ((color white . text . show) (pacDotsOnBoard gstate)) (21, 1)
+renderElapsedTime gstate _ = scaleAndTranslate gstate ((color white . text . show) (ghostStates gstate)) (21, 1)
 -- renderElapsedTime gstate et = scaleAndTranslate gstate ((color white . text . show) et) (21, 1)
 
 -- |Render the elapsed frames on the screen

@@ -27,15 +27,17 @@ updateGhost gstate ghost = ghost {  ghostPosition = newPosition,
                                     ghostState = newGhostState }
   where
     newTargetPosition           = getGhostTargetPosition gstate ghost
-    possibleMovementDirections  = possibleGhostDirections ghost (direction ghost) (position ghost) (board gstate) (round $ numberOfColumns gstate)
+    possibleMovementDirections  = possibleGhostDirections ghost (direction ghost) (position ghost) (board gstate) (round $ numberOfColumns gstate) speed
     newMovementDirection        = fastestDirectionToTargetPosition gstate possibleMovementDirections (ghostState ghost) ghost newTargetPosition
 
-    speed | newGhostState == Dead = 0.2
+    speed | newGhostState == Dead && ((odd . xSteps) ghost || (odd . ySteps) ghost) = 0.1 
+          | newGhostState == Dead = 0.2
           | otherwise = 0.1
 
-    newGhostState = updateGhostState gstate ((playerState . player) gstate) (elapsedTime gstate) ghost
+    newGhostState | collision ghost (player gstate) && (playerState . player) gstate == PlayerBoosted = Dead
+                  | otherwise = updateGhostState gstate ((playerState . player) gstate) (ghostStates gstate) ghost
 
-    tileMovingTo        = fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
+    tileMovingTo        = trace (show newGhostState) $ fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
     newPositionAndSteps = updateGhostPosition tileMovingTo (round $ numberOfColumns gstate) newMovementDirection speed (position ghost) (stepsTaken ghost)
 
     newPosition = fst newPositionAndSteps
@@ -72,13 +74,13 @@ getGhostTargetPosition gstate clyde@Ghost { ghostName = Clyde} = targetPosition
 getGhostTargetPosition gstate Ghost { ghostName = Pinky} = pointAtDistanceInMovementDirection ((position . player) gstate) ((direction . player) gstate) 4
 
 -- |Helper function that determines which direction the ghost can go into. Returns a list of possible directions and the point they lead to
-possibleGhostDirections :: Ghost -> MovementDirection -> Point -> Board -> Int -> [(MovementDirection, Point)]
-possibleGhostDirections ghost md position board numberOfColumns | md == Model.None  = onePointUp    ++ onePointDown   ++ onePointLeft ++ onePointRight
-                                                                | md == Model.Up    = onePointLeft  ++ onePointRight  ++ onePointUp
-                                                                | md == Model.Down  = onePointLeft  ++ onePointRight  ++ onePointDown
-                                                                | md == Model.Left  = onePointUp    ++ onePointDown   ++ onePointLeft
-                                                                | md == Model.Right = onePointUp    ++ onePointDown   ++ onePointRight
-  where 
+possibleGhostDirections :: Ghost -> MovementDirection -> Point -> Board -> Int -> Float -> [(MovementDirection, Point)]
+possibleGhostDirections ghost md position board numberOfColumns speed | md == Model.None  = onePointUp    ++ onePointDown   ++ onePointLeft ++ onePointRight
+                                                                      | md == Model.Up    = onePointLeft  ++ onePointRight  ++ onePointUp
+                                                                      | md == Model.Down  = onePointLeft  ++ onePointRight  ++ onePointDown
+                                                                      | md == Model.Left  = onePointUp    ++ onePointDown   ++ onePointLeft
+                                                                      | md == Model.Right = onePointUp    ++ onePointDown   ++ onePointRight
+  where
     onePointUp    | checkFieldAtPoint Model.Up && (allowedX . xSteps) ghost = [(Model.Up, (fst position, snd position + speed))]
                   | otherwise = []
     onePointDown  | checkFieldAtPoint Model.Down && (allowedX . xSteps) ghost = [(Model.Down, (fst position, snd position - speed))]
@@ -92,9 +94,6 @@ possibleGhostDirections ghost md position board numberOfColumns | md == Model.No
 
     checkFieldAtPoint       dir = checkFieldInFuturePosition emptyOrPacdotHelper dir board numberOfColumns (pointAtDistanceInMovementDirection position dir 0.05)
     checkTransporterAtPoint dir = checkFieldInFuturePosition isTransporter dir board numberOfColumns (pointAtDistanceInMovementDirection position dir 0.05)
-
-    speed | ghostState ghost == Scared = 0.2
-          | otherwise = 0.1
 
 fastestDirectionToTargetPosition :: GameState -> [(MovementDirection, Point)] -> GhostState -> Ghost -> Point -> MovementDirection
 fastestDirectionToTargetPosition _      [x] _      _      _               = fst x  -- If there is only one possible direction, to reduce unnecessary calculations
@@ -118,12 +117,13 @@ updateGhostPosition _           _               Model.Left  speed (x, y)  (xStep
 updateGhostPosition _           _               Model.Right speed (x, y)  (xSteps, ySteps) = ((x + speed, y), (xSteps + floor (10 * speed), ySteps))
 
 -- |Update the ghost state based on player state or time
-updateGhostState :: GameState -> PlayerState -> Float -> Ghost -> GhostState
--- If the ghost is dead and has come by the spawn location change his state from dead to chasing
-updateGhostState gstate _             _           ghost@Ghost { ghostState = Dead } | (sqrt . distanceBetweenTwoPoints (position ghost)) (spawnLocation gstate) < 0.05 = Chasing
--- If the ghost is not dead and the player is boosted, change the ghost state to scared, this will change the ghost sprite and make the ghost vulnerable for Pacman
-updateGhostState _      PlayerBoosted _ _ = Scared
--- Scatter mode based on elapsed time?
+updateGhostState :: GameState -> PlayerState -> GhostState -> Ghost -> GhostState
+-- If the ghost is dead and has come by the spawn location change his state from dead to the current ghost state determined by the time
+updateGhostState gstate _           timeGhostState ghost@Ghost { ghostState = Dead }  | (sqrt . distanceBetweenTwoPoints (position ghost)) (spawnLocation gstate) < 0.05 = timeGhostState
+                                                                                      | otherwise = Dead
+-- If the player is boosted change the ghost state to scared
+updateGhostState _ PlayerBoosted _ _ = Scared
+updateGhostState _ _ timeGhostState _ = timeGhostState
 updateGhostState _ _ _ _ = Chasing
 
 -- Ghost HasDirection instance
@@ -143,6 +143,7 @@ instance Renderable Ghost where
   render gstate ghost = scaleAndTranslate gstate (currentGhostSprite ghost)
     where currentGhostSprite :: Ghost -> Picture
           currentGhostSprite ghost  | ghostState ghost  == Scared         = ghostSprites ghost !! 4
+                                    | ghostState ghost  == Dead           = ghostSprites ghost !! 5
                                     | direction ghost   == Model.None     = head $ ghostSprites ghost
                                     | direction ghost   == Model.Up       = ghostSprites ghost !! 1
                                     | direction ghost   == Model.Down     = head $ ghostSprites ghost
@@ -155,6 +156,6 @@ instance Updateable Ghost where
 
 -- Ghost Collidable instance
 instance Collidable Ghost where
-  hitbox ghost = Hitbox (x - 0.5, y + 0.5)
+  hitbox ghost = Hitbox (x - 0.15, y + 0.15)
     where
       (x, y) = position ghost

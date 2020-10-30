@@ -28,7 +28,9 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                             score               = newScore,
                                             pacDotsOnBoard      = newPacdots,
                                             board               = newBoard,
-                                            gameState           = newGameState }
+                                            gameState           = newGameState,
+                                            scatterTimer        = newScatterTimer,
+                                            ghostStates         = newGhostStates }
                                               where
                                                 newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
 
@@ -38,6 +40,15 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
 
                                                 newGameState  | newPacdots == 0 = GameOver
                                                               | otherwise = Playing
+                                                
+                                                newScatterTimerAndGhostStates | ghostStates gstate == Chasing && scatterTimer gstate > 20 = (0, Scattering)
+                                                                              | ghostStates gstate == Scattering && scatterTimer gstate > 7 = (0, Chasing)
+                                                                              | otherwise = (scatterTimer gstate + secs, ghostStates gstate)
+
+                                                newScatterTimer = fst newScatterTimerAndGhostStates
+                                                newGhostStates = snd newScatterTimerAndGhostStates
+
+
 
 -- | Handle user input
 input :: Event -> GameState -> IO GameState
@@ -56,22 +67,6 @@ inputKey (EventKey (Char c) _ _ _) gstate = gstate { player = newPlayer c (playe
 
 -- other input
 inputKey _ gstate = gstate
-
--- ghosts chase for 20 sec, scatter for 7
--- updateGhost :: GameState -> Ghost -> Ghost
--- updateGhost gstate ghost@(Ghost _ pos@(x,y) state _ spawn direc _ _ _ ) = ghost {ghostState = newstate, ghostPosition = newpos}
---   where
---     time    = elapsedBoardFrames gstate + 1
---     newstate| time `mod` 800 == 0   = Model.Scattering    -- not the way to do it, but changing state works
---             | time `mod` 400 == 0   = Model.Chasing
---             | otherwise             = state
---     step    | state == Scattering   = 0.2
---             | otherwise             = 0.1
---     newpos  | direc == Model.Up     = (x, y - step)
---             | direc == Model.Down   = (x, y + step)
---             | direc == Model.Left   = (x - step, y)
---             | direc == Model.Right  = (x + step, y)
---             | otherwise             = pos
 
 -- |Update the game score and the number of pacdots left on the map. Check if the Player is now in a Pacdot field, and if this is the case update the board as well. Returns ((newPacdots, newScore), newBoard)
 updateScoreAndPacdots :: GameState -> Player -> ((Int, Int), Board)

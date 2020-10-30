@@ -68,6 +68,7 @@ main = do
   pinkyRight <- loadBMP "img/sprites/pinkyR.bmp"
 
   scared <- loadBMP "img/sprites/scared.bmp"
+  dead <- loadBMP "img/sprites/dead.bmp"
 
   stdGen <- newStdGen
   map <- readFile "map.txt"
@@ -99,10 +100,10 @@ main = do
                                         playerDownOpened,
                                         playerLeftOpened,
                                         playerRightOpened]
-                                        [[blinkyUp, blinkyDown, blinkyLeft, blinkyRight, scared],
-                                        [inkyUp, inkyDown, inkyLeft, inkyRight, scared],
-                                        [clydeUp, clydeDown, clydeLeft, clydeRight, scared],
-                                        [pinkyUp, pinkyDown, pinkyLeft, pinkyRight, scared]])     -- Initial state
+                                        [[blinkyUp, blinkyDown, blinkyLeft, blinkyRight, scared, dead],
+                                        [inkyUp, inkyDown, inkyLeft, inkyRight, scared, dead],
+                                        [clydeUp, clydeDown, clydeLeft, clydeRight, scared, dead],
+                                        [pinkyUp, pinkyDown, pinkyLeft, pinkyRight, scared, dead]])     -- Initial state
               view             -- View function
               input            -- Event function
               step             -- Step function
