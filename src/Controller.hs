@@ -8,12 +8,13 @@ import Ghost
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 import System.Random
+import Data.List
 
 -- | Determine what kind of update we need and delegate it to the corresponding function
 step :: Float -> GameState -> IO GameState
 step secs gstate  | gameState gstate == Paused = return gstate                               -- If the game is paused return the previous gstate, no updates occur
                   | (lives . player) gstate == 0 || gameState gstate == GameOver = undefined -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
-                  | (playerState . player) gstate == PlayerDead = undefined                  -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
+                  | (playerState . player) gstate == PlayerDead = writeHighScore gstate      -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
                   | otherwise = normalStep secs gstate                                       -- Continue the game with a normal update/step
 
 -- |Perform one standard step in the game. The game is not paused, the player is not dead, the player has not won etc
@@ -48,8 +49,6 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                                 newScatterTimer = fst newScatterTimerAndGhostStates
                                                 newGhostStates = snd newScatterTimerAndGhostStates
 
-
-
 -- | Handle user input
 input :: Event -> GameState -> IO GameState
 input e gstate = return (inputKey e gstate)
@@ -73,3 +72,16 @@ updateScoreAndPacdots :: GameState -> Player -> ((Int, Int), Board)
 updateScoreAndPacdots gstate player | (isPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate - 1, score gstate + 10), eatPacdot (board gstate) (position player))
                                     | (isPowerPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate, score gstate), eatPacdot (board gstate) (position player))
                                     | otherwise = ((pacDotsOnBoard gstate, score gstate), board gstate)
+
+writeHighScore :: GameState -> IO GameState
+writeHighScore gstate = do
+  highScores <- readFile "highscores.txt"
+  let l = lines highScores -- ["aaa 200", "bac 123"] etc
+  let w = map words l -- [["aaa", 200], ["bac", 123]] etc
+
+  insertAndSaveHighscore (score gstate) w
+
+  return initialState (stdGen gstate) (readFile "map.txt") (pics gstate) (playerSprites $ player gstate) (ghostSprites ) { score = 0, elapsedTime = 0, elapsedBoardFrames = 0, pacDotsOnBoard = numberOfPacdotsOnTheBoard (board gstate), scatterTimer = 0, ghostStates = Chasing }
+
+insertAndSaveHighscore :: Int -> [[String]] -> IO ()
+insertAndSaveHighscore score [[]] = undefined
