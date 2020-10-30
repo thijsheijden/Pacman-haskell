@@ -31,9 +31,9 @@ initialState stdGen map pics playerSprites ghostSprites = GameState {  player = 
                                                           elapsedTime = 0,
                                                           elapsedBoardFrames = 0,
                                                           blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome Blinky 5,
-                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky 30,
-                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde 40,
-                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky 50,
+                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky 7,
+                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde 9,
+                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky 11,
                                                           pacDotsOnBoard = numberOfPacdotsOnTheBoard board,
                                                           spawnLocation = spawnPosition
                                                         }
@@ -211,6 +211,7 @@ data GhostState = Chasing | Scared | Dead | Scattering | Trapped
   deriving (Eq)
 
 data GhostName = Blinky | Inky | Clyde | Pinky
+  deriving (Eq)
 
 -- |The direction the ghost/player is moving or going to move: Up, down, left, right, none
 data MovementDirection = Up | Down | Left | Right | None
@@ -227,6 +228,9 @@ data Field = Pacdot | Energizer | Cherry | Empty | RightCorner | DownCorner | Le
   deriving (Eq, Show)
 type Row = [Field]
 type Board = [Row]
+
+-- |Hitbox data type, contains the top left point of the hitbox. All hitboxes are 1x1 in size so width and height are not needed.
+data Hitbox = Hitbox Point
 
 --------------------------------------------------
 -----------------TYPE CLASSES---------------------
@@ -290,6 +294,14 @@ class Animatable a where
 -}
 class Updateable a where
   update :: GameState -> a -> a
+
+{-|
+  Collidable typeclass:
+  Everything that can collide should implement this.
+  Gives access to the 'hitbox' function which returns the hitbox of the object. This hitbox can be used to determine collision of two objects.
+-}
+class Collidable a where
+  hitbox :: a -> Hitbox
 
 {-|
   Renderable instances
@@ -466,7 +478,6 @@ pointAtDistanceInMovementDirection (x, y) Model.Down  distance  = (x, y - distan
 pointAtDistanceInMovementDirection (x, y) Model.Left  distance  = (x - distance, y)
 pointAtDistanceInMovementDirection (x, y) Model.Right distance  = (x + distance, y)
 
-
 --------------------------------------------------
 ----------------POINTS AND VECTORS----------------
 --------------------------------------------------
@@ -482,3 +493,17 @@ createVector (x1, y1) (x2, y2) = (x2 - x1, y2 - y1)
 -- |Scalar multiplication with vector
 (<*>) :: Float -> Vector -> Vector
 s <*> (x, y) = (s * x, s * y)
+
+--------------------------------------------------
+--------------------COLLISIONS--------------------
+--------------------------------------------------
+
+-- |Determine whether there is a collision between two Collidable objects
+collision :: (Collidable a, Collidable b) => a -> b -> Bool
+collision a b = hitBoxesOverlapping (hitbox a) (hitbox b)
+  where
+    hitBoxesOverlapping :: Hitbox -> Hitbox -> Bool
+    hitBoxesOverlapping (Hitbox (x1, y1)) (Hitbox (x2, y2)) = x1 < x2 + 1
+                                                            && x1 + 1 > x2
+                                                            && y1 < y2 + 1
+                                                            && y1 + 1 > y2

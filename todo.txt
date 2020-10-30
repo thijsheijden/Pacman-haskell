@@ -1,0 +1,14 @@
+Ghosts:
+- Scatter mode
+- Collision with pacman
+- Eaten by pacman when scared
+  - Determine using the ghost and player state
+
+Player:
+- Collision with ghost, lose life
+
+
+Game:
+- Load highscore file and determine if new highscore
+  - If new highscore allow player to enter 3 characters and save score to the file
+- Cherries spawn at random positions on the map

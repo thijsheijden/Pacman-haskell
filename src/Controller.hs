@@ -20,17 +20,16 @@ step secs gstate  | gameState gstate == Paused = return gstate                  
 normalStep :: Float -> GameState -> IO GameState
 normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gstate + secs,
                                             elapsedBoardFrames  = elapsedBoardFrames gstate + 1,
-                                            player              = newPlayer,
-                                            blinky              = updateGhost gstate (blinky gstate),
-                                            inky                = updateGhost gstate (inky gstate),
-                                            clyde               = updateGhost gstate (clyde gstate),
-                                            pinky               = updateGhost gstate (pinky gstate),
+                                            player              = update gstate (player gstate),
+                                            blinky              = update gstate (blinky gstate),
+                                            inky                = update gstate (inky gstate),
+                                            clyde               = update gstate (clyde gstate),
+                                            pinky               = update gstate (pinky gstate),
                                             score               = newScore,
                                             pacDotsOnBoard      = newPacdots,
                                             board               = newBoard,
                                             gameState           = newGameState }
                                               where
-                                                newPlayer = update gstate (player gstate)
                                                 newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
 
                                                 newPacdots = (fst . fst) newScorePacdotsAndBoard

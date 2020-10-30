@@ -140,3 +140,9 @@ instance Animatable Player where
 -- Pacman Updateable instance
 instance Updateable Player where
   update gstate player = updatePlayer gstate player
+
+-- Pacman Collidable instance
+instance Collidable Player where
+  hitbox player = Hitbox (x - 0.5, y + 0.5)
+    where
+      (x, y) = position player

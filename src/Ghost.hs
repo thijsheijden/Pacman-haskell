@@ -7,6 +7,7 @@ import Data.List
 import Data.Ord
 import System.Random
 import Player
+import Debug.Trace
 
 -- |Function that releases a ghost and moves them to the spawn location on the map
 releaseGhost :: Ghost -> Point -> Ghost
@@ -31,7 +32,9 @@ updateGhost gstate ghost = ghost {  ghostPosition = newPosition,
     speed | ghostState ghost == Scared = 0.2
           | otherwise = 0.1
 
-    tileMovingTo        = fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
+    collisionWithPlayer = collision ghost (player gstate)
+
+    tileMovingTo        = trace (show collisionWithPlayer) $ fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
     newPositionAndSteps = updateGhostPosition tileMovingTo (round $ numberOfColumns gstate) newMovementDirection speed (position ghost) (stepsTaken ghost)
 
     newPosition = fst newPositionAndSteps
@@ -102,10 +105,10 @@ updateGhostPosition Transporter numberOfColumns Model.Left  _ (_, y) (_, ySteps)
 updateGhostPosition Transporter _               Model.Right _ (_, y) (_, ySteps) = ((0, y), (0, ySteps))
 
 updateGhostPosition _           _               Model.None  _     position stepsTaken      = (position, stepsTaken)
-updateGhostPosition _           _               Model.Up    speed (x, y)  (xSteps, ySteps) = ((x, y + speed), (xSteps, ySteps + 1))
-updateGhostPosition _           _               Model.Down  speed (x, y)  (xSteps, ySteps) = ((x, y - speed), (xSteps, ySteps - 1))
-updateGhostPosition _           _               Model.Left  speed (x, y)  (xSteps, ySteps) = ((x - speed, y), (xSteps - 1, ySteps))
-updateGhostPosition _           _               Model.Right speed (x, y)  (xSteps, ySteps) = ((x + speed, y), (xSteps + 1, ySteps))
+updateGhostPosition _           _               Model.Up    speed (x, y)  (xSteps, ySteps) = ((x, y + speed), (xSteps, ySteps + floor (10 * speed)))
+updateGhostPosition _           _               Model.Down  speed (x, y)  (xSteps, ySteps) = ((x, y - speed), (xSteps, ySteps - floor (10 * speed)))
+updateGhostPosition _           _               Model.Left  speed (x, y)  (xSteps, ySteps) = ((x - speed, y), (xSteps - floor (10 * speed), ySteps))
+updateGhostPosition _           _               Model.Right speed (x, y)  (xSteps, ySteps) = ((x + speed, y), (xSteps + floor (10 * speed), ySteps))
 
 -- Ghost HasDirection instance
 instance HasDirection Ghost where
@@ -133,3 +136,9 @@ instance Renderable Ghost where
 -- Ghost Updateable instance
 instance Updateable Ghost where
   update gstate = updateGhost gstate
+
+-- Ghost Collidable instance
+instance Collidable Ghost where
+  hitbox ghost = Hitbox (x - 0.5, y + 0.5)
+    where
+      (x, y) = position ghost
