@@ -11,6 +11,7 @@ view :: GameState -> IO Picture
 view = return . viewPure
 
 viewPure :: GameState -> Picture
+viewPure gstate@GameState { gameState = GameOver } = renderHighscoreView gstate
 viewPure gstate = pictures [renderBoard gstate, 
                             renderPlayer (player gstate) gstate, 
                             renderGhost (blinky gstate) gstate, 
@@ -39,9 +40,15 @@ renderGhost ghost gstate = render gstate ghost (position ghost)
 
 -- |Render the elapsed time on the screen
 renderElapsedTime :: GameState -> Float -> Picture
-renderElapsedTime gstate _ = scaleAndTranslate gstate ((color white . text . show) (ghostStates gstate)) (21, 1)
--- renderElapsedTime gstate et = scaleAndTranslate gstate ((color white . text . show) et) (21, 1)
+renderElapsedTime gstate et = scaleAndTranslate gstate ((color white . text . show) et) (21, 1)
 
 -- |Render the elapsed frames on the screen
 renderElapsedFrames :: GameState -> Int -> Picture
 renderElapsedFrames gstate f = scaleAndTranslate gstate ((color white . text . show) f) (21, 2.5)
+
+renderHighscoreView :: GameState -> Picture
+renderHighscoreView gstate = pictures $ [scaleAndTranslate gstate ((color magenta . text) "Highscores") (numberOfColumns gstate / 2 - (0.4 * fromIntegral (length "Highscores")), 2)] ++ renderScore (highScores gstate) 4 gstate
+
+renderScore :: [String] -> Float -> GameState -> [Picture]
+renderScore [] n gstate = [blank]
+renderScore (x:xs) n gstate = scaleAndTranslate gstate ((color magenta . text) x) (numberOfColumns gstate / 2 - (0.20 * fromIntegral (length x)), n) : (renderScore xs (n + 3) gstate)

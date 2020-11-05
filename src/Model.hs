@@ -17,28 +17,30 @@ secsBetweenCycles = 4
 --------------------------------------------------
 
 -- |Creating the initial gamestate record object
-initialState :: StdGen -> String -> [Picture] -> [Picture] -> [[Picture]] -> GameState
-initialState stdGen map pics playerSprites ghostSprites = GameState {  player = initialPlayer playerSprites spawnPosition,
-                                                          stdGen = stdGen,
-                                                          score = 0,
-                                                          gameState = Playing,
-                                                          board = board, 
-                                                          pics = pics, 
-                                                          gridSize = gridSize, 
-                                                          numberOfColumns = numberOfColumns, 
-                                                          numberOfRows = numberOfRows,
-                                                          multiplier = 1,
-                                                          elapsedTime = 0,
-                                                          elapsedBoardFrames = 0,
-                                                          blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome Blinky 5,
-                                                          inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky 7,
-                                                          clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde 9,
-                                                          pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky 11,
-                                                          pacDotsOnBoard = numberOfPacdotsOnTheBoard board,
-                                                          spawnLocation = spawnPosition,
-                                                          scatterTimer = 0,       -- Must be changed to be blinky release + 20 seconds
-                                                          ghostStates = Chasing
-                                                        }
+initialState :: StdGen -> String -> [Picture] -> [Picture] -> [[Picture]] -> [String] -> Float -> GameState
+initialState stdGen map pics playerSprites ghostSprites highScores elapsedSeconds = GameState {   player = initialPlayer playerSprites spawnPosition,
+                                                                                                  stdGen = stdGen,
+                                                                                                  score = 0,
+                                                                                                  gameState = Playing,
+                                                                                                  board = board, 
+                                                                                                  pics = pics, 
+                                                                                                  gridSize = gridSize, 
+                                                                                                  numberOfColumns = numberOfColumns, 
+                                                                                                  numberOfRows = numberOfRows,
+                                                                                                  multiplier = 1,
+                                                                                                  elapsedTime = elapsedSeconds,
+                                                                                                  elapsedBoardFrames = 0,
+                                                                                                  blinky = initialGhost (head ghostSprites) blinkyPosition blinkyHome Blinky 5,
+                                                                                                  inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky 7,
+                                                                                                  clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde 9,
+                                                                                                  pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky 11,
+                                                                                                  pacDotsOnBoard = 10,
+                                                                                                  spawnLocation = spawnPosition,
+                                                                                                  scatterTimer = 0,       -- Must be changed to be blinky release + 20 seconds
+                                                                                                  ghostStates = Chasing,
+                                                                                                  ghostSpritesS = ghostSprites,
+                                                                                                  highScores = highScores
+                                                                                                }
   where
     board = createBoard map
     numberOfColumns = fromIntegral $ length $ head board
@@ -129,11 +131,13 @@ rowToFields = map stringToField
         -- Will be drawn as pacdots later, for now this visualizes things
         stringToField "t" = Transporter
 
-        stringToField "c" = Cherry
+        stringToField "f" = Fruit
 
         stringToField "e" = Empty
 
         stringToField "s" = Spawn
+
+        stringToField "E" = OutOfBounds
 
         stringToField _ = Empty
 
@@ -166,7 +170,9 @@ data GameState = GameState {  gameState       :: State,
                               pacDotsOnBoard  :: Int,
                               spawnLocation   :: Point,        -- The location pacman spawns and the location to which the ghosts will be freed
                               scatterTimer    :: Float,
-                              ghostStates     :: GhostState
+                              ghostStates     :: GhostState,
+                              ghostSpritesS   :: [[Picture]],
+                              highScores      :: [String]
                           }
 
 -- |The player record object
@@ -222,13 +228,13 @@ data MovementDirection = Up | Down | Left | Right | None
   deriving (Eq, Show)
 
 -- |A field on the board
-data Field = Pacdot | Energizer | Cherry | Empty | RightCorner | DownCorner | LeftCorner | UpCorner 
+data Field = Pacdot | Energizer | Fruit | Empty | RightCorner | DownCorner | LeftCorner | UpCorner 
             | Horizontal | Vertical | UpConnector | DownConnector 
             | LeftConnector | RightConnector | AllConnector | LeftRounded 
             | RightRounded | TopRounded | BottomRounded
             | BlinkySpawn | InkySpawn | ClydeSpawn | PinkySpawn
             | BlinkyHome  | InkyHome  | ClydeHome  | PinkyHome
-            | Transporter | PowerPacdot | Spawn
+            | Transporter | PowerPacdot | Spawn | OutOfBounds
   deriving (Eq, Show)
 type Row = [Field]
 type Board = [Row]
@@ -333,7 +339,7 @@ instance Renderable Field where
 
   render gstate Empty = translatePicture gstate (color black . rectangleSolid 10 $ 10)
 
-  render gstate Cherry = scaleAndTranslate gstate (pics gstate !! 15)
+  render gstate Fruit = scaleAndTranslate gstate (pics gstate !! 15)
 
   render gstate BlinkyHome = translatePicture gstate (color white . circleSolid $ 10)
   render gstate InkyHome = translatePicture gstate (color white . circleSolid $ 10)
@@ -443,6 +449,16 @@ emptyOrPacdotHelper field = field ==  Empty || field == Pacdot
                                             || field == PinkyHome
                                             || field == PowerPacdot
                                             || field == Spawn
+
+emptyOrPacdotHelperGhost :: Field -> Bool
+emptyOrPacdotHelperGhost field = field ==  Empty || field == Pacdot 
+                                            || field == BlinkyHome 
+                                            || field == InkyHome 
+                                            || field == ClydeHome 
+                                            || field == PinkyHome
+                                            || field == PowerPacdot
+                                            || field == Spawn
+                                            || field == Fruit
 
 -- |Count how many pacdots there are on the board
 numberOfPacdotsOnTheBoard :: Board -> Int

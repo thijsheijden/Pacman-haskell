@@ -12,7 +12,7 @@ import Graphics.Gloss ( loadBMP )
 main :: IO ()
 main = do
 
-  -- Loading all the map bitmaps
+  -- Loading all the maze bitmaps
   horizontal <- loadBMP "img/blocks/lines.bmp"
   vertical <- loadBMP "img/blocks/lines vertical.bmp"
 
@@ -71,12 +71,15 @@ main = do
   dead <- loadBMP "img/sprites/dead.bmp"
 
   stdGen <- newStdGen
-  map <- readFile "map.txt"
+  maze <- readFile "map.txt"
+
+  h             <- readFile "highscores.txt"
+  let highScores        = lines h
   
   playIO (InWindow "Pacman" (800, 720) (0, 0)) -- Or FullScreen
               black            -- Background color
               40               -- Frames per second
-              (initialState stdGen map [horizontal, 
+              (initialState stdGen maze [horizontal, 
                                         vertical, 
                                         rightCorner, 
                                         downCorner, 
@@ -103,7 +106,9 @@ main = do
                                         [[blinkyUp, blinkyDown, blinkyLeft, blinkyRight, scared, dead],
                                         [inkyUp, inkyDown, inkyLeft, inkyRight, scared, dead],
                                         [clydeUp, clydeDown, clydeLeft, clydeRight, scared, dead],
-                                        [pinkyUp, pinkyDown, pinkyLeft, pinkyRight, scared, dead]])     -- Initial state
+                                        [pinkyUp, pinkyDown, pinkyLeft, pinkyRight, scared, dead]]
+                                        highScores
+                                        0)     -- Initial state
               view             -- View function
               input            -- Event function
               step             -- Step function

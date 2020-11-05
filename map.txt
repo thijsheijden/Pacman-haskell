@@ -6,11 +6,11 @@ v p p p p p p p p p p p p p p p p p p p v
 v p lr rr p tr p lr l l do l l rr p tr p lr rr p v
 v pp p p p v p p p p v p p p p v p p p pp v
 uc l l dc p ro l l rr p br p lr l l lo p rc l l lc
-e e e v p v p p p p s p p p p v p v e e e
+E E E v p v p p p p s p p p p v p v E E E
 lr l l lc p br p rc l l l l l dc p br p uc l l rr
-t p p p p p p v e g2 e g3 e v p p p p p p t
-lr l l dc p tr p v g1 e e e g4 v p tr p rc l l rr
-e e e v p v p uc l l l l l lc p v p v e e e
+t p p p p p p v E g2 E g3 E v p p p p p p t
+lr l l dc p tr p v g1 E E E g4 v p tr p rc l l rr
+E E E v p v p uc l l l l l lc p v p v E E E
 rc l l lc p v p p p p p p p p p v p uc l l dc
 v p p p p br p lr l l do l l rr p br p p p p v
 v p lr dc p p p p p p v p p p p p p rc rr p v

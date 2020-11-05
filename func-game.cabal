@@ -29,6 +29,7 @@ executable func-game
                       gloss,
                       random,
                       lens,
-                      directory
+                      directory,
+                      extra
   hs-source-dirs:      src
   default-language:    Haskell2010

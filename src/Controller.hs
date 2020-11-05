@@ -9,13 +9,19 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 import System.Random
 import System.Directory
+import System.Time.Extra
 import Data.List
+import Debug.Trace
+import Control.Monad
 
 
 -- |Determine what kind of update we need and delegate it to the corresponding function
 step :: Float -> GameState -> IO GameState
 step secs gstate  | gameState gstate == Paused = return gstate                                            -- If the game is paused return the previous gstate, no updates occur
-                  | (lives . player) gstate == 0 || gameState gstate == GameOver = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
+                  | (lives . player) gstate == 0 || gameState gstate == GameOver = do 
+                                                                                      newstate <- writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
+                                                                                      sleep 5
+                                                                                      return newstate
                   | (playerState . player) gstate == PlayerDead = writeHighScore gstate                   -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
                   | otherwise = normalStep secs gstate                                                    -- Continue the game with a normal update/step
 
@@ -33,15 +39,16 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                             board               = newBoard,
                                             gameState           = newGameState,
                                             scatterTimer        = newScatterTimer,
-                                            ghostStates         = newGhostStates }
+                                            ghostStates         = newGhostStates,
+                                            stdGen              = newGen }
                                               where
                                                 newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
 
                                                 newPacdots = (fst . fst) newScorePacdotsAndBoard
                                                 newScore   = (snd . fst) newScorePacdotsAndBoard
-                                                newBoard   = snd newScorePacdotsAndBoard
+                                                (newBoard, newGen) = (newFruit . snd) newScorePacdotsAndBoard
 
-                                                newGameState  | newPacdots == 0 = GameOver
+                                                newGameState  | newPacdots <= 0 = GameOver
                                                               | otherwise = Playing
                                                 
                                                 newScatterTimerAndGhostStates | ghostStates gstate == Chasing && scatterTimer gstate > 20 = (0, Scattering)
@@ -50,6 +57,9 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
 
                                                 newScatterTimer = fst newScatterTimerAndGhostStates
                                                 newGhostStates = snd newScatterTimerAndGhostStates
+
+                                                newFruit x  | scatterTimer gstate > 5 = addFruit gstate x
+                                                            | otherwise = (x, stdGen gstate)
 
 -- |Handle user input
 input :: Event -> GameState -> IO GameState
@@ -75,27 +85,37 @@ updateScoreAndPacdots gstate player | (isPacdot . fieldAtPosition (board gstate)
                                     | (isPowerPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate, score gstate), eatPacdot (board gstate) (position player))
                                     | otherwise = ((pacDotsOnBoard gstate, score gstate), board gstate)
 
+-- |Create a new piece of fruit and place it somewhere on the map
+addFruit :: GameState -> Board -> (Board, StdGen)
+addFruit gstate board = (changeFieldAtPosition board Fruit position, newGen)
+  where
+    positionAndStdGen = generateFruitPosition (numberOfColumns gstate) (numberOfRows gstate) board (stdGen gstate)
+    position = fst positionAndStdGen
+    newGen = snd positionAndStdGen
+
+generateFruitPosition :: Float -> Float -> Board -> StdGen -> (Point, StdGen)
+generateFruitPosition nColumns nRows board stdGen   | (emptyOrPacdotHelper . fieldAtPosition board (round nColumns)) (fst randomX, fst randomY) = ((fst randomX, fst randomY), snd randomX)
+                                                    | otherwise = trace "fruit" $ generateFruitPosition nColumns nRows board stdGen
+                                                      where
+                                                        randomX = randomR (1, nColumns - 2) stdGen
+                                                        randomY = randomR (1, nRows - 2) stdGen
+
 -- |Write a highscore to the txt file, only show the top 5
 writeHighScore :: GameState -> IO GameState
 writeHighScore gstate = do
-  name          <- getLine
-  h             <- readFile "highscores.txt"
-  case (readFile "highscores.txt") of 
-    null -> writeFile "highscores.txt" ""
-  h             <- readFile "highscores.txt"
-  let ls        = lines h      -- ["aaa 200", "bac 123"] etc
-  let ws        = map words ls -- [["aaa", "200"], ["bac", "123"]] etc
-  let newScores = unlines $ map unwords $ take 5 $ insertAndSaveHighscore name (score gstate) ws
+
+  let newScores = unlines $ take 5 $ insertAndSaveHighscore (score gstate) (highScores gstate)
   writeFile "highscores2.txt" newScores
   renameFile "highscores2.txt" "highscores.txt"
 
-  return gstate --initialState (stdGen gstate) (readFile "map.txt") (pics gstate) (playerSprites $ player gstate) ghostSprites
--- how to get ghostsprites in there? ^^^
+  map <- readFile "map.txt"
+
+  return (initialState (stdGen gstate) map (pics gstate) (playerSprites $ player gstate) (ghostSpritesS gstate) (lines newScores) (-5))
 
 -- non exhaustive error vvv
-insertAndSaveHighscore :: String -> Int -> [[String]] -> [[String]]
-insertAndSaveHighscore name score [[]]          = [[name, show score]]
-insertAndSaveHighscore name score l@[[_, s]]    | score > (read s :: Int) = [name, show score] : l
-                                                | otherwise               = l ++ [[name, show score]]
-insertAndSaveHighscore name score l@([n, s]:xs) | score > (read s :: Int) = [name, show score] : l
-                                                | otherwise               = [n, s] : insertAndSaveHighscore name score xs
+insertAndSaveHighscore :: Int -> [String] -> [String]
+insertAndSaveHighscore score []       = [show score]
+insertAndSaveHighscore score [s]      | score > (read s :: Int) = show score : [s]
+                                      | otherwise               = [s] ++ [show score]
+insertAndSaveHighscore score l@(s:ss) | score > (read s :: Int) = [show score] ++ l
+                                      | otherwise               = s : insertAndSaveHighscore score ss
