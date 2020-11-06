@@ -34,7 +34,7 @@ initialState stdGen map pics playerSprites ghostSprites highScores elapsedSecond
                                                                                                   inky = initialGhost (ghostSprites !! 1) inkyPosition inkyHome Inky 7,
                                                                                                   clyde = initialGhost (ghostSprites !! 2) clydePosition clydeHome Clyde 9,
                                                                                                   pinky = initialGhost (ghostSprites !! 3) pinkyPosition pinkyHome Pinky 11,
-                                                                                                  pacDotsOnBoard = 10,
+                                                                                                  pacDotsOnBoard = numberOfPacdotsOnTheBoard board,
                                                                                                   spawnLocation = spawnPosition,
                                                                                                   scatterTimer = 0,       -- Must be changed to be blinky release + 20 seconds
                                                                                                   ghostStates = Chasing,

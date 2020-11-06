@@ -20,7 +20,7 @@ viewPure gstate = pictures [renderBoard gstate,
                             renderGhost (clyde gstate) gstate, 
                             renderGhost (pinky gstate) gstate,
                             renderElapsedTime gstate (elapsedTime gstate),
-                            renderElapsedFrames gstate (elapsedBoardFrames gstate)]
+                            renderElapsedFrames gstate (pacDotsOnBoard gstate)]
 
 -- |Render the board
 renderBoard :: GameState -> Picture

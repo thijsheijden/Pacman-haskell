@@ -139,7 +139,7 @@ instance Animatable Player where
 
 -- Pacman Updateable instance
 instance Updateable Player where
-  update gstate player = updatePlayer gstate player
+  update = updatePlayer
 
 -- Pacman Collidable instance
 instance Collidable Player where

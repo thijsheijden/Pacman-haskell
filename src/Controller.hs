@@ -41,9 +41,9 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                               where
                                                 newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
 
-                                                newPacdots = (fst . fst) newScorePacdotsAndBoard
+                                                newPacdots = (fst . fst) newScorePacdotsAndBoard - fruitPacdotAdjustment
                                                 newScore   = (snd . fst) newScorePacdotsAndBoard
-                                                (newBoard, newGen) = (newFruit . snd) newScorePacdotsAndBoard
+                                                (fruitPacdotAdjustment, newBoard, newGen) = (newFruit . snd) newScorePacdotsAndBoard
 
                                                 newGameState  | newPacdots <= 0 = GameOver
                                                               | otherwise = Playing
@@ -55,8 +55,8 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                                 newScatterTimer = fst newScatterTimerAndGhostStates
                                                 newGhostStates = snd newScatterTimerAndGhostStates
 
-                                                newFruit x  | scatterTimer gstate > 0 && (round (scatterTimer gstate)) `mod` 15 == 0 = addFruit gstate x
-                                                            | otherwise = (x, stdGen gstate)
+                                                newFruit x  | scatterTimer gstate > 20 = addFruit gstate x
+                                                            | otherwise = (0, x, stdGen gstate)
 
 -- |Handle user input
 input :: Event -> GameState -> IO GameState
@@ -87,12 +87,13 @@ updateScoreAndPacdots gstate player | (isPacdot . fieldAtPosition (board gstate)
                                     | otherwise = ((pacDotsOnBoard gstate, score gstate), board gstate)
 
 -- |Create a new piece of fruit and place it somewhere on the map
-addFruit :: GameState -> Board -> (Board, StdGen)
-addFruit gstate board = (changeFieldAtPosition board Fruit position, newGen)
+addFruit :: GameState -> Board -> (Int, Board, StdGen)
+addFruit gstate board = (scoreAdjustment, changeFieldAtPosition board Fruit position, newGen)
   where
     positionAndStdGen = generateFruitPosition (numberOfColumns gstate) (numberOfRows gstate) board (stdGen gstate)
     position = fst positionAndStdGen
     newGen = snd positionAndStdGen
+    scoreAdjustment = if isPacdot $ fieldAtPosition board (round $ numberOfColumns gstate) position then 1 else 0
 
 generateFruitPosition :: Float -> Float -> Board -> StdGen -> (Point, StdGen)
 generateFruitPosition nColumns nRows board stdGen   | (emptyOrPacdotHelperFruit . fieldAtPosition board (round nColumns)) (fst randomX, fst randomY) = ((fst randomX, fst randomY), snd randomX)
