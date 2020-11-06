@@ -17,11 +17,11 @@ secsBetweenCycles = 4
 --------------------------------------------------
 
 -- |Creating the initial gamestate record object
-initialState :: StdGen -> String -> [Picture] -> [Picture] -> [[Picture]] -> [String] -> Float -> GameState
-initialState stdGen map pics playerSprites ghostSprites highScores elapsedSeconds = GameState {   player = initialPlayer playerSprites spawnPosition,
+initialState :: StdGen -> String -> [Picture] -> [Picture] -> [[Picture]] -> [String] -> Float -> State-> GameState
+initialState stdGen map pics playerSprites ghostSprites highScores elapsedSeconds s = GameState { player = initialPlayer playerSprites spawnPosition,
                                                                                                   stdGen = stdGen,
                                                                                                   score = 0,
-                                                                                                  gameState = Playing,
+                                                                                                  gameState = s,
                                                                                                   board = board, 
                                                                                                   pics = pics, 
                                                                                                   gridSize = gridSize, 
@@ -440,18 +440,13 @@ checkFieldInFuturePosition f Model.Down  board numberOfColumns pos = (f . fieldA
 checkFieldInFuturePosition f Model.Left  board numberOfColumns pos = (f . fieldAtFuturePosition pos board Model.Left) numberOfColumns
 checkFieldInFuturePosition f Model.Right board numberOfColumns pos = (f . fieldAtFuturePosition pos board Model.Right) numberOfColumns
 
--- |Helper function for the 'isFieldEmptyOrPacdot' function
+-- |Helper function for the 'isFieldEmptyOrPacdot' function, seperate for fruit bc fruit cannot spawn on fruit
+emptyOrPacdotHelperFruit :: Field -> Bool
+emptyOrPacdotHelperFruit field = field ==  Empty  || field == Pacdot
+                                                  || field == Spawn
+
 emptyOrPacdotHelper :: Field -> Bool
 emptyOrPacdotHelper field = field ==  Empty || field == Pacdot 
-                                            || field == BlinkyHome 
-                                            || field == InkyHome 
-                                            || field == ClydeHome 
-                                            || field == PinkyHome
-                                            || field == PowerPacdot
-                                            || field == Spawn
-
-emptyOrPacdotHelperGhost :: Field -> Bool
-emptyOrPacdotHelperGhost field = field ==  Empty || field == Pacdot 
                                             || field == BlinkyHome 
                                             || field == InkyHome 
                                             || field == ClydeHome 
@@ -470,6 +465,9 @@ numberOfPacdotsOnTheBoard = sum . map (length . filter p)
 -- |Helper function which takes a field and returns a boolean denoting whether it is a pacdot or equivalent field
 isPacdot :: Field -> Bool
 isPacdot f = f == Pacdot || f == Spawn
+
+isFruit :: Field -> Bool
+isFruit f = f == Fruit 
 
 -- |Helper function which takes a field and returns a boolean denoting whether it is a transporter field
 isTransporter :: Field -> Bool

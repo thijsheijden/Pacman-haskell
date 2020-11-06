@@ -18,10 +18,7 @@ import Control.Monad
 -- |Determine what kind of update we need and delegate it to the corresponding function
 step :: Float -> GameState -> IO GameState
 step secs gstate  | gameState gstate == Paused = return gstate                                            -- If the game is paused return the previous gstate, no updates occur
-                  | (lives . player) gstate == 0 || gameState gstate == GameOver = do 
-                                                                                      newstate <- writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
-                                                                                      sleep 5
-                                                                                      return newstate
+                  | (lives . player) gstate == 0 || gameState gstate == GameOver = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
                   | (playerState . player) gstate == PlayerDead = writeHighScore gstate                   -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
                   | otherwise = normalStep secs gstate                                                    -- Continue the game with a normal update/step
 
@@ -58,14 +55,17 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                                 newScatterTimer = fst newScatterTimerAndGhostStates
                                                 newGhostStates = snd newScatterTimerAndGhostStates
 
-                                                newFruit x  | scatterTimer gstate > 5 = addFruit gstate x
+                                                newFruit x  | scatterTimer gstate > 0 && (round (scatterTimer gstate)) `mod` 15 == 0 = addFruit gstate x
                                                             | otherwise = (x, stdGen gstate)
 
 -- |Handle user input
 input :: Event -> GameState -> IO GameState
 input e gstate = return (inputKey e gstate)
 
+-- The p key is used to toggle Pause
 inputKey :: Event -> GameState -> GameState
+inputKey (EventKey (Char 'p') _ _ _) gstate | gameState gstate == Playing = gstate { gameState = Paused}
+                                            | otherwise = gstate { gameState = Playing }
 inputKey (EventKey (Char c) _ _ _) gstate = gstate { player = newPlayer c (player gstate) }
                                                   where 
                                                     newPlayer :: Char -> Player -> Player
@@ -73,7 +73,7 @@ inputKey (EventKey (Char c) _ _ _) gstate = gstate { player = newPlayer c (playe
                                                     newPlayer 's' player = updateMovementDirection gstate Model.Up player
                                                     newPlayer 'a' player = updateMovementDirection gstate Model.Left player
                                                     newPlayer 'd' player = updateMovementDirection gstate Model.Right player
-                                                    newPlayer 'z' player = updateMovementDirection gstate Model.None player
+                                                    -- newPlayer 'p' player = updateMovementDirection gstate Model.None player
                                                     newPlayer  _  player = updateMovementDirection gstate (direction player) player
 
 -- other input
@@ -83,6 +83,7 @@ inputKey _ gstate = gstate
 updateScoreAndPacdots :: GameState -> Player -> ((Int, Int), Board)
 updateScoreAndPacdots gstate player | (isPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate - 1, score gstate + 10), eatPacdot (board gstate) (position player))
                                     | (isPowerPacdot . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate, score gstate), eatPacdot (board gstate) (position player))
+                                    | (isFruit . fieldAtPosition (board gstate) (round $ numberOfColumns gstate) . position) player = ((pacDotsOnBoard gstate, score gstate + 100), eatPacdot (board gstate) (position player))
                                     | otherwise = ((pacDotsOnBoard gstate, score gstate), board gstate)
 
 -- |Create a new piece of fruit and place it somewhere on the map
@@ -94,11 +95,11 @@ addFruit gstate board = (changeFieldAtPosition board Fruit position, newGen)
     newGen = snd positionAndStdGen
 
 generateFruitPosition :: Float -> Float -> Board -> StdGen -> (Point, StdGen)
-generateFruitPosition nColumns nRows board stdGen   | (emptyOrPacdotHelper . fieldAtPosition board (round nColumns)) (fst randomX, fst randomY) = ((fst randomX, fst randomY), snd randomX)
-                                                    | otherwise = trace "fruit" $ generateFruitPosition nColumns nRows board stdGen
+generateFruitPosition nColumns nRows board stdGen   | (emptyOrPacdotHelperFruit . fieldAtPosition board (round nColumns)) (fst randomX, fst randomY) = ((fst randomX, fst randomY), snd randomX)
+                                                    | otherwise = trace "fruit" $ generateFruitPosition nColumns nRows board (snd randomY)
                                                       where
                                                         randomX = randomR (1, nColumns - 2) stdGen
-                                                        randomY = randomR (1, nRows - 2) stdGen
+                                                        randomY = randomR (1, nRows - 2) (snd randomX)
 
 -- |Write a highscore to the txt file, only show the top 5
 writeHighScore :: GameState -> IO GameState
@@ -110,7 +111,7 @@ writeHighScore gstate = do
 
   map <- readFile "map.txt"
 
-  return (initialState (stdGen gstate) map (pics gstate) (playerSprites $ player gstate) (ghostSpritesS gstate) (lines newScores) (-5))
+  return (initialState (stdGen gstate) map (pics gstate) (playerSprites $ player gstate) (ghostSpritesS gstate) (lines newScores) (-5) Paused)
 
 -- non exhaustive error vvv
 insertAndSaveHighscore :: Int -> [String] -> [String]

@@ -12,6 +12,7 @@ view = return . viewPure
 
 viewPure :: GameState -> Picture
 viewPure gstate@GameState { gameState = GameOver } = renderHighscoreView gstate
+viewPure gstate@GameState { gameState = Paused } = renderHighscoreView gstate
 viewPure gstate = pictures [renderBoard gstate, 
                             renderPlayer (player gstate) gstate, 
                             renderGhost (blinky gstate) gstate, 

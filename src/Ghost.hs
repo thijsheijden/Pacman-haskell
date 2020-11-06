@@ -92,7 +92,7 @@ possibleGhostDirections ghost md position board numberOfColumns speed | md == Mo
                   | checkTransporterAtPoint Model.Right && (allowedY . ySteps) ghost = [(Model.Right, (0, snd position))]
                   | otherwise = []
 
-    checkFieldAtPoint       dir = checkFieldInFuturePosition emptyOrPacdotHelperGhost dir board numberOfColumns (pointAtDistanceInMovementDirection position dir 0.05)
+    checkFieldAtPoint       dir = checkFieldInFuturePosition emptyOrPacdotHelper dir board numberOfColumns (pointAtDistanceInMovementDirection position dir 0.05)
     checkTransporterAtPoint dir = checkFieldInFuturePosition isTransporter dir board numberOfColumns (pointAtDistanceInMovementDirection position dir 0.05)
 
 fastestDirectionToTargetPosition :: GameState -> [(MovementDirection, Point)] -> GhostState -> Ghost -> Point -> MovementDirection

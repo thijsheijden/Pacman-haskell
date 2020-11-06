@@ -1,7 +1,7 @@
 module Main where
 
 import Controller ( input, step )
-import Model ( initialState )
+import Model ( initialState, State(..) )
 import View ( view )
 import System.Random ( newStdGen )
 
@@ -108,7 +108,8 @@ main = do
                                         [clydeUp, clydeDown, clydeLeft, clydeRight, scared, dead],
                                         [pinkyUp, pinkyDown, pinkyLeft, pinkyRight, scared, dead]]
                                         highScores
-                                        0)     -- Initial state
+                                        0
+                                        Playing)     -- Initial state
               view             -- View function
               input            -- Event function
               step             -- Step function
