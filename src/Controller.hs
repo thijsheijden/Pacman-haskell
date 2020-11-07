@@ -17,7 +17,7 @@ import Control.Monad
 -- |Determine what kind of update we need and delegate it to the corresponding function
 step :: Float -> GameState -> IO GameState
 step secs gstate  | gameState gstate == Paused || gameState gstate == Restarting = return gstate                                            -- If the game is paused return the previous gstate, no updates occur
-                  | (lives . player) gstate <= 0 = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
+                  | (lives . player) gstate <= 0 || gameState gstate == GameOver = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
                   | (playerState . player) gstate == PlayerDead = resetStep gstate                   -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
                   | otherwise = normalStep secs gstate                                                    -- Continue the game with a normal update/step
 
@@ -47,7 +47,7 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                                 newScore   = (snd . fst) newScorePacdotsAndBoard + playerEatGhost (player gstate) ghosts newMultiplier
                                                 (fruitPacdotAdjustment, newBoard, newGen) = (newFruit . snd) newScorePacdotsAndBoard
 
-                                                newGameState  | newPacdots <= 0 = GameOver
+                                                newGameState  | newPacdots == 0 = GameOver
                                                               | lives (player gstate) <= 0 = GameOver
                                                               | otherwise = Playing
                                                 
@@ -128,7 +128,7 @@ addFruit gstate board = (scoreAdjustment, changeFieldAtPosition board Fruit posi
 
 generateFruitPosition :: Float -> Float -> Board -> StdGen -> (Point, StdGen)
 generateFruitPosition nColumns nRows board stdGen   | (emptyOrPacdotHelperFruit . fieldAtPosition board (round nColumns)) (fst randomX, fst randomY) = ((fst randomX, fst randomY), snd randomX)
-                                                    | otherwise = trace "fruit" $ generateFruitPosition nColumns nRows board (snd randomY)
+                                                    | otherwise = generateFruitPosition nColumns nRows board (snd randomY)
                                                       where
                                                         randomX = randomR (1, nColumns - 2) stdGen
                                                         randomY = randomR (1, nRows - 2) (snd randomX)

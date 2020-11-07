@@ -37,7 +37,7 @@ updateGhost gstate ghost = ghost {  ghostPosition = newPosition,
     newGhostState | collision ghost (player gstate) && (playerState . player) gstate == PlayerBoosted && ghostState ghost == Scared = Dead
                   | otherwise = updateGhostState gstate ((playerState . player) gstate) (ghostStates gstate) ghost
 
-    tileMovingTo        = trace (show newGhostState) $ fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
+    tileMovingTo        = fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
     newPositionAndSteps = updateGhostPosition tileMovingTo (round $ numberOfColumns gstate) newMovementDirection speed (position ghost) (stepsTaken ghost)
 
     newPosition = fst newPositionAndSteps
