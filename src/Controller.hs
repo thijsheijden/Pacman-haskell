@@ -19,7 +19,7 @@ import Control.Monad
 step :: Float -> GameState -> IO GameState
 step secs gstate  | gameState gstate == Paused = return gstate                                            -- If the game is paused return the previous gstate, no updates occur
                   | (lives . player) gstate == 0 || gameState gstate == GameOver = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
-                  | (playerState . player) gstate == PlayerDead = writeHighScore gstate                   -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
+                  | (playerState . player) gstate == PlayerDead = resetStep gstate                   -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
                   | otherwise = normalStep secs gstate                                                    -- Continue the game with a normal update/step
 
 -- |Perform one standard step in the game. The game is not paused, the player is not dead, the player has not won etc
@@ -57,6 +57,31 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
 
                                                 newFruit x  | scatterTimer gstate > 20 = addFruit gstate x
                                                             | otherwise = (0, x, stdGen gstate)
+
+resetStep :: GameState -> IO GameState
+resetStep gstate = return gstate {
+                                  player  = resetPlayer (player gstate),
+                                  blinky  = resetGhost (blinky gstate),
+                                  inky    = resetGhost (inky gstate),
+                                  clyde   = resetGhost (clyde gstate),
+                                  pinky   = resetGhost (pinky gstate),
+                                  elapsedTime = 0,
+                                  elapsedBoardFrames = 0,
+                                  multiplier = 1,
+                                  scatterTimer = 0
+                                  }
+  where
+    resetPlayer player = player { lives = lives player - 1,
+                                  playerPosition = spawnLocation gstate,
+                                  playerDirection = Model.None,
+                                  playerFutureDirection = Model.None,
+                                  playerState = PlayerAlive,
+                                  playerXSteps = 0,
+                                  playerYSteps = 0 }
+    resetGhost ghost = ghost  { ghostPosition = spawn ghost,
+                                ghostState = Trapped,
+                                ghostXSteps = 0,
+                                ghostYSteps = 0 }
 
 -- |Handle user input
 input :: Event -> GameState -> IO GameState

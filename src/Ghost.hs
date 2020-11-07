@@ -136,13 +136,6 @@ instance HasDirection Ghost where
   direction = ghostDirection
   updateMovementDirection _ _ _ = undefined -- Choosing not to implement this because it is not truly relevant for the Ghosts
 
--- Ghost HasPosition instance
-instance HasPosition Ghost where
-  position = ghostPosition
-  stepsTaken ghost = (ghostXSteps ghost, ghostYSteps ghost)
-  xSteps = ghostXSteps
-  ySteps = ghostYSteps
-
 -- Ghost renderable instance
 instance Renderable Ghost where
   render gstate ghost = scaleAndTranslate gstate (currentGhostSprite ghost)
@@ -158,9 +151,3 @@ instance Renderable Ghost where
 -- Ghost Updateable instance
 instance Updateable Ghost where
   update = updateGhost
-
--- Ghost Collidable instance
-instance Collidable Ghost where
-  hitbox ghost = Hitbox (x - 0.15, y + 0.15)
-    where
-      (x, y) = position ghost

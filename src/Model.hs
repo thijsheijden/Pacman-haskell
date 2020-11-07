@@ -525,3 +525,29 @@ collision a b = hitBoxesOverlapping (hitbox a) (hitbox b)
                                                             && x1 + 1 > x2
                                                             && y1 < y2 + 1
                                                             && y1 + 1 > y2
+
+-- Pacman HasPosition instance
+instance HasPosition Player where
+  position          = playerPosition
+  stepsTaken player = (xSteps player, ySteps player)
+  xSteps            = playerXSteps
+  ySteps            = playerYSteps
+
+-- Pacman Collidable instance
+instance Collidable Player where
+  hitbox player = Hitbox (x - 0.15, y + 0.15)
+    where
+      (x, y) = position player
+
+-- Ghost HasPosition instance
+instance HasPosition Ghost where
+  position = ghostPosition
+  stepsTaken ghost = (ghostXSteps ghost, ghostYSteps ghost)
+  xSteps = ghostXSteps
+  ySteps = ghostYSteps
+
+-- Ghost Collidable instance
+instance Collidable Ghost where
+  hitbox ghost = Hitbox (x - 0.15, y + 0.15)
+    where
+      (x, y) = position ghost

@@ -35,8 +35,11 @@ updatePlayer gstate player = player { playerPosition = newPosition,
 
     -- The new state of the player
     newPlayerStateAndTimer = updatePlayerState gstate (playerState player) (playerStateTimer player) (position player)
-    newState = snd newPlayerStateAndTimer
+    newState  | playerDead = PlayerDead
+              | otherwise = snd newPlayerStateAndTimer
     newStateTimer = fst newPlayerStateAndTimer
+
+    playerDead = playerCollisionWithGhosts player [blinky gstate, inky gstate, clyde gstate, pinky gstate]
 
 {-|
   Update the position of the player
@@ -106,12 +109,12 @@ canChangeDirectionNow gstate md = canMovePosition md ((stepsTaken . player) gsta
     canMovePosition Model.Left  (_, ySteps) = allowedY ySteps
     canMovePosition Model.Right (_, ySteps) = allowedY ySteps
 
--- Pacman HasPosition instance
-instance HasPosition Player where
-  position          = playerPosition
-  stepsTaken player = (xSteps player, ySteps player)
-  xSteps            = playerXSteps
-  ySteps            = playerYSteps
+-- Check if pacman collides with any ghost (and if these ghosts are not scared, kill the player)
+playerCollisionWithGhosts :: Player -> [Ghost] -> Bool
+playerCollisionWithGhosts player = any (collisionsWithNonScaredGhost player)
+  where
+    collisionsWithNonScaredGhost :: Player -> Ghost -> Bool
+    collisionsWithNonScaredGhost player ghost = collision player ghost && ghostState ghost /= Scared && ghostState ghost /= Dead
 
 -- Pacman Renderable instance
 instance Renderable Player where
@@ -140,9 +143,3 @@ instance Animatable Player where
 -- Pacman Updateable instance
 instance Updateable Player where
   update = updatePlayer
-
--- Pacman Collidable instance
-instance Collidable Player where
-  hitbox player = Hitbox (x - 0.15, y + 0.15)
-    where
-      (x, y) = position player
