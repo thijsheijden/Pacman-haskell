@@ -199,7 +199,7 @@ data PlayerState = PlayerAlive | PlayerDead | PlayerBoosted
   deriving (Eq, Show)
 
 -- |The ghost record object
-data Ghost  = Ghost { ghostName       :: GhostName,   -- Weet niet hoe er anders gepattern matched kan worden op welke ghost er wordt meegegeven aan de update functie van het ghost object?
+data Ghost  = Ghost { ghostName       :: GhostName,
                       ghostPosition   :: Point,
                       ghostState      :: GhostState,
                       home            :: Point,
@@ -228,7 +228,7 @@ data MovementDirection = Up | Down | Left | Right | None
   deriving (Eq, Show)
 
 -- |A field on the board
-data Field = Pacdot | Energizer | Fruit | Empty | RightCorner | DownCorner | LeftCorner | UpCorner 
+data Field = Pacdot | Fruit | Empty | RightCorner | DownCorner | LeftCorner | UpCorner 
             | Horizontal | Vertical | UpConnector | DownConnector 
             | LeftConnector | RightConnector | AllConnector | LeftRounded 
             | RightRounded | TopRounded | BottomRounded

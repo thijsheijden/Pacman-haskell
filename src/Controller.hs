@@ -92,7 +92,7 @@ resetStep gstate = return gstate {
 input :: Event -> GameState -> IO GameState
 input e gstate = return (inputKey e gstate)
 
--- The p key is used to toggle Pause
+-- |WASD for movement, p for pause
 inputKey :: Event -> GameState -> GameState
 inputKey (EventKey (Char 'p') _ _ _) gstate | gameState gstate == Playing = gstate { gameState = Paused}
                                             | otherwise = gstate { gameState = Playing }
@@ -104,7 +104,6 @@ inputKey (EventKey (Char c) _ _ _) gstate = gstate { player = newPlayer c (playe
                                                     newPlayer 's' player = updateMovementDirection gstate Model.Up player
                                                     newPlayer 'a' player = updateMovementDirection gstate Model.Left player
                                                     newPlayer 'd' player = updateMovementDirection gstate Model.Right player
-                                                    -- newPlayer 'p' player = updateMovementDirection gstate Model.None player
                                                     newPlayer  _  player = updateMovementDirection gstate (direction player) player
 
 -- other input
@@ -145,14 +144,14 @@ writeHighScore gstate = do
 
   return (initialState (stdGen gstate) map (pics gstate) (playerSprites $ player gstate) (ghostSpritesS gstate) (lines newScores) 0 Restarting)
 
--- non exhaustive error vvv
 insertAndSaveHighscore :: Int -> [String] -> [String]
 insertAndSaveHighscore score []       = [show score]
 insertAndSaveHighscore score [s]      | score > (read s :: Int) = show score : [s]
-                                      | otherwise               = [s] ++ [show score]
-insertAndSaveHighscore score l@(s:ss) | score > (read s :: Int) = [show score] ++ l
+                                      | otherwise               = s : [show score]
+insertAndSaveHighscore score l@(s:ss) | score > (read s :: Int) = show score : l
                                       | otherwise               = s : insertAndSaveHighscore score ss
 
+-- |Eating a ghost grants 200 points and a multiplier
 calculateMultiplier :: [Ghost] -> Int
 calculateMultiplier [] = 0
 calculateMultiplier (ghost:ghosts)  | ghostState ghost == Dead = 1 + calculateMultiplier ghosts

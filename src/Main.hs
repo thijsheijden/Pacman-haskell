@@ -70,13 +70,18 @@ main = do
   scared <- loadBMP "img/sprites/scared.bmp"
   dead <- loadBMP "img/sprites/dead.bmp"
 
+  -- Get a new random seed
   stdGen <- newStdGen
+
+  -- Read the map file
   maze <- readFile "map.txt"
 
+  -- Read the highscores file
   h             <- readFile "highscores.txt"
   let highScores        = lines h
   
-  playIO (InWindow "Pacman" (800, 720) (0, 0)) -- Or FullScreen
+  -- The main game function from gloss, creates the game window and makes the initial GameState to begin
+  playIO (InWindow "Pacman" (1200, 800) (0, 0)) -- Or FullScreen
               black            -- Background color
               40               -- Frames per second
               (initialState stdGen maze [horizontal, 
