@@ -11,7 +11,7 @@ import Debug.Trace
 
 -- |Function that releases a ghost and moves them to the spawn location on the map
 releaseGhost :: Ghost -> Point -> Ghost
-releaseGhost ghost spawn = ghost { ghostState = Chasing, ghostPosition = spawn }
+releaseGhost ghost spawn = ghost { ghostState = Unfrightenable, ghostPosition = spawn }
 
 -- |One iteration update for a ghost
 updateGhost :: GameState -> Ghost -> Ghost
