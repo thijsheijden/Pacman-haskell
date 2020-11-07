@@ -216,8 +216,8 @@ data Ghost  = Ghost { ghostName       :: GhostName,   -- Weet niet hoe er anders
 data State = Playing | GameOver | Paused
   deriving (Eq)
 
--- |The state of a ghost: Chasing, scared, dead, scattering, trapped
-data GhostState = Chasing | Scared | Dead | Scattering | Trapped
+-- |The state of a ghost: Chasing, scared, dead, scattering, trapped or unfrightenable
+data GhostState = Chasing | Scared | Dead | Scattering | Trapped | Unfrightenable
   deriving (Eq, Show)
 
 data GhostName = Blinky | Inky | Clyde | Pinky

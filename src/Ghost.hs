@@ -34,7 +34,7 @@ updateGhost gstate ghost = ghost {  ghostPosition = newPosition,
           | newGhostState == Dead = 0.2
           | otherwise = 0.1
 
-    newGhostState | collision ghost (player gstate) && (playerState . player) gstate == PlayerBoosted = Dead
+    newGhostState | collision ghost (player gstate) && (playerState . player) gstate == PlayerBoosted && ghostState ghost == Scared = Dead
                   | otherwise = updateGhostState gstate ((playerState . player) gstate) (ghostStates gstate) ghost
 
     tileMovingTo        = trace (show newGhostState) $ fieldAtFuturePosition (pointAtDistanceInMovementDirection (position ghost) newMovementDirection 0.05) (board gstate) newMovementDirection (round $ numberOfColumns gstate)
@@ -119,8 +119,13 @@ updateGhostPosition _           _               Model.Right speed (x, y)  (xStep
 -- |Update the ghost state based on player state or time
 updateGhostState :: GameState -> PlayerState -> GhostState -> Ghost -> GhostState
 -- If the ghost is dead and has come by the spawn location change his state from dead to the current ghost state determined by the time
-updateGhostState gstate _           timeGhostState ghost@Ghost { ghostState = Dead }  | (sqrt . distanceBetweenTwoPoints (position ghost)) (spawnLocation gstate) < 0.05 = timeGhostState
-                                                                                      | otherwise = Dead
+updateGhostState gstate _           _ ghost@Ghost { ghostState = Dead } | (sqrt . distanceBetweenTwoPoints (position ghost)) (spawnLocation gstate) < 0.05 = Unfrightenable
+                                                                        | otherwise = Dead
+
+-- If the ghost is unfrightenable keep this state until the player boosts again
+updateGhostState gstate PlayerBoosted _ Ghost { ghostState = Unfrightenable } | (playerStateTimer . player) gstate >= (20 - (1/40)) = Scared
+                                                                              | otherwise = Unfrightenable
+
 -- If the player is boosted change the ghost state to scared
 updateGhostState _ PlayerBoosted _ _ = Scared
 updateGhostState _ _ timeGhostState _ = timeGhostState
@@ -152,7 +157,7 @@ instance Renderable Ghost where
 
 -- Ghost Updateable instance
 instance Updateable Ghost where
-  update gstate = updateGhost gstate
+  update = updateGhost
 
 -- Ghost Collidable instance
 instance Collidable Ghost where

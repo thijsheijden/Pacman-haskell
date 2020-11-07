@@ -20,7 +20,7 @@ viewPure gstate = pictures [renderBoard gstate,
                             renderGhost (clyde gstate) gstate, 
                             renderGhost (pinky gstate) gstate,
                             renderElapsedTime gstate (elapsedTime gstate),
-                            renderElapsedFrames gstate (pacDotsOnBoard gstate)]
+                            renderElapsedFrames gstate ((playerStateTimer . player) gstate)]
 
 -- |Render the board
 renderBoard :: GameState -> Picture
@@ -44,7 +44,7 @@ renderElapsedTime :: GameState -> Float -> Picture
 renderElapsedTime gstate et = scaleAndTranslate gstate ((color white . text . show) et) (21, 1)
 
 -- |Render the elapsed frames on the screen
-renderElapsedFrames :: GameState -> Int -> Picture
+renderElapsedFrames :: GameState -> Float -> Picture
 renderElapsedFrames gstate f = scaleAndTranslate gstate ((color white . text . show) f) (21, 2.5)
 
 renderHighscoreView :: GameState -> Picture
