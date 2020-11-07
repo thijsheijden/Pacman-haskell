@@ -11,7 +11,7 @@ view :: GameState -> IO Picture
 view = return . viewPure
 
 viewPure :: GameState -> Picture
-viewPure gstate@GameState { gameState = GameOver } = renderHighscoreView gstate
+viewPure gstate@GameState { gameState = Restarting } = renderHighscoreView gstate
 viewPure gstate@GameState { gameState = Paused } = renderPauseScreen gstate
 viewPure gstate = pictures [renderBoard gstate, 
                             renderPlayer (player gstate) gstate, 
@@ -48,7 +48,7 @@ renderElapsedFrames :: GameState -> Int -> Picture
 renderElapsedFrames gstate f = scaleAndTranslate gstate ((color white . text . show) f) (21, 2.5)
 
 renderHighscoreView :: GameState -> Picture
-renderHighscoreView gstate = pictures $ [scaleAndTranslate gstate ((color magenta . text) "Highscores") (numberOfColumns gstate / 2 - (0.4 * fromIntegral (length "Highscores")), 2)] ++ renderScore (highScores gstate) 4 gstate
+renderHighscoreView gstate = pictures $ [scaleAndTranslate gstate ((color magenta . text) "Highscores - any key to restart") (numberOfColumns gstate / 2 - 11, 2)] ++ renderScore (highScores gstate) 4 gstate
 
 renderScore :: [String] -> Float -> GameState -> [Picture]
 renderScore [] n gstate = [blank]

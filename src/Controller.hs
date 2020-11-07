@@ -14,11 +14,10 @@ import Data.List
 import Debug.Trace
 import Control.Monad
 
-
 -- |Determine what kind of update we need and delegate it to the corresponding function
 step :: Float -> GameState -> IO GameState
-step secs gstate  | gameState gstate == Paused = return gstate                                            -- If the game is paused return the previous gstate, no updates occur
-                  | (lives . player) gstate <= 0 || gameState gstate == GameOver = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
+step secs gstate  | gameState gstate == Paused || gameState gstate == Restarting = return gstate                                            -- If the game is paused return the previous gstate, no updates occur
+                  | (lives . player) gstate <= 0 = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
                   | (playerState . player) gstate == PlayerDead = resetStep gstate                   -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
                   | otherwise = normalStep secs gstate                                                    -- Continue the game with a normal update/step
 
@@ -49,6 +48,7 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                                 (fruitPacdotAdjustment, newBoard, newGen) = (newFruit . snd) newScorePacdotsAndBoard
 
                                                 newGameState  | newPacdots <= 0 = GameOver
+                                                              | lives (player gstate) <= 0 = GameOver
                                                               | otherwise = Playing
                                                 
                                                 newScatterTimerAndGhostStates | ghostStates gstate == Chasing && scatterTimer gstate > 20 = (0, Scattering)
@@ -96,6 +96,7 @@ input e gstate = return (inputKey e gstate)
 inputKey :: Event -> GameState -> GameState
 inputKey (EventKey (Char 'p') _ _ _) gstate | gameState gstate == Playing = gstate { gameState = Paused}
                                             | otherwise = gstate { gameState = Playing }
+inputKey (EventKey (Char _) _ _ _) gstate@GameState { gameState = Restarting } = gstate { gameState = Playing }
 inputKey (EventKey (Char c) _ _ _) gstate = gstate { player = newPlayer c (player gstate) }
                                                   where 
                                                     newPlayer :: Char -> Player -> Player
@@ -142,7 +143,7 @@ writeHighScore gstate = do
 
   map <- readFile "map.txt"
 
-  return (initialState (stdGen gstate) map (pics gstate) (playerSprites $ player gstate) (ghostSpritesS gstate) (lines newScores) (-5) Paused)
+  return (initialState (stdGen gstate) map (pics gstate) (playerSprites $ player gstate) (ghostSpritesS gstate) (lines newScores) 0 Restarting)
 
 -- non exhaustive error vvv
 insertAndSaveHighscore :: Int -> [String] -> [String]

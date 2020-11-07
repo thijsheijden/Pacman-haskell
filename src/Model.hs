@@ -213,7 +213,7 @@ data Ghost  = Ghost { ghostName       :: GhostName,   -- Weet niet hoe er anders
                     }
 
 -- |The state of the game: Playing, game over, paused
-data State = Playing | GameOver | Paused
+data State = Playing | GameOver | Paused | Restarting
   deriving (Eq)
 
 -- |The state of a ghost: Chasing, scared, dead, scattering, trapped or unfrightenable
