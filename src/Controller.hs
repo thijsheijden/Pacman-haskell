@@ -18,7 +18,7 @@ import Control.Monad
 -- |Determine what kind of update we need and delegate it to the corresponding function
 step :: Float -> GameState -> IO GameState
 step secs gstate  | gameState gstate == Paused = return gstate                                            -- If the game is paused return the previous gstate, no updates occur
-                  | (lives . player) gstate == 0 || gameState gstate == GameOver = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
+                  | (lives . player) gstate <= 0 || gameState gstate == GameOver = writeHighScore gstate  -- Check if a highscore was achieved, if so ask the user to enter 3 characters and save their score to the highscore file
                   | (playerState . player) gstate == PlayerDead = resetStep gstate                   -- Respawn the player, reset the gamestate to the original gamestate except for the score, player lives etc
                   | otherwise = normalStep secs gstate                                                    -- Continue the game with a normal update/step
 
@@ -37,12 +37,15 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
                                             gameState           = newGameState,
                                             scatterTimer        = newScatterTimer,
                                             ghostStates         = newGhostStates,
-                                            stdGen              = newGen }
+                                            stdGen              = newGen,
+                                            multiplier          = newMultiplier }
                                               where
+                                                ghosts = [blinky gstate, inky gstate, clyde gstate, pinky gstate]
+
                                                 newScorePacdotsAndBoard = updateScoreAndPacdots gstate (player gstate)
 
                                                 newPacdots = (fst . fst) newScorePacdotsAndBoard - fruitPacdotAdjustment
-                                                newScore   = (snd . fst) newScorePacdotsAndBoard
+                                                newScore   = (snd . fst) newScorePacdotsAndBoard + playerEatGhost (player gstate) ghosts newMultiplier
                                                 (fruitPacdotAdjustment, newBoard, newGen) = (newFruit . snd) newScorePacdotsAndBoard
 
                                                 newGameState  | newPacdots <= 0 = GameOver
@@ -57,6 +60,8 @@ normalStep secs gstate = return $ gstate {  elapsedTime         = elapsedTime gs
 
                                                 newFruit x  | scatterTimer gstate > 20 = addFruit gstate x
                                                             | otherwise = (0, x, stdGen gstate)
+
+                                                newMultiplier = 1 + calculateMultiplier ghosts
 
 resetStep :: GameState -> IO GameState
 resetStep gstate = return gstate {
@@ -146,3 +151,15 @@ insertAndSaveHighscore score [s]      | score > (read s :: Int) = show score : [
                                       | otherwise               = [s] ++ [show score]
 insertAndSaveHighscore score l@(s:ss) | score > (read s :: Int) = [show score] ++ l
                                       | otherwise               = s : insertAndSaveHighscore score ss
+
+calculateMultiplier :: [Ghost] -> Int
+calculateMultiplier [] = 0
+calculateMultiplier (ghost:ghosts)  | ghostState ghost == Dead = 1 + calculateMultiplier ghosts
+                                    | otherwise = 0 + calculateMultiplier ghosts
+
+playerEatGhost :: Player -> [Ghost] -> Int -> Int
+playerEatGhost player [] multiplier = 0
+playerEatGhost player (ghost:ghosts) multiplier | canEatGhost = multiplier * 200 + playerEatGhost player ghosts multiplier
+                                                | otherwise = playerEatGhost player ghosts multiplier
+  where
+    canEatGhost = collision player ghost && playerState player == PlayerBoosted && ghostState ghost == Scared
